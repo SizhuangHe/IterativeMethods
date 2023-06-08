@@ -4,6 +4,7 @@ import torch
 import time
 import torch.optim as optim
 import torch.nn.functional as F
+import matplotlib.pyplot as plt
 
 
 def encode_onehot(labels):
@@ -125,6 +126,11 @@ def test(model, features, adj, idx_test, labels):
 
 def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train, idx_val, idx_test, labels):
     print("runrunrun!")
+    loss_TRAIN = []
+    acc_TRAIN = []
+    loss_VAL = []
+    acc_VAL = []
+
     optimizer = optim.Adam(model.parameters(),
                        lr=lr, weight_decay=weight_decay)
     t_total = time.time()
@@ -136,6 +142,10 @@ def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train
         output = model(features, adj)
         loss_train = F.nll_loss(output[idx_train], labels[idx_train])
         acc_train = accuracy(output[idx_train], labels[idx_train])
+
+        loss_TRAIN.append(loss_train.item())
+        acc_TRAIN.append(acc_train.item())
+
         loss_train.backward()
         optimizer.step()
 
@@ -147,6 +157,10 @@ def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train
 
         loss_val = F.nll_loss(output[idx_val], labels[idx_val])
         acc_val = accuracy(output[idx_val], labels[idx_val])
+
+        loss_VAL.append(loss_val.item())
+        acc_VAL.append(acc_val.item())
+
         print('Epoch: {:04d}'.format(epoch+1),
             'loss_train: {:.4f}'.format(loss_train.item()),
             'acc_train: {:.4f}'.format(acc_train.item()),
@@ -157,6 +171,18 @@ def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train
 
     print("Optimization Finished!")
     print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
+
+    fig, ax = plt.subplots(2, 2)
+    fig.tight_layout(pad=5.0)
+    ax[0, 0].plot(loss_TRAIN, 'b') #row=0, col=0
+    ax[0, 0].title.set_text("Training loss")
+    ax[0, 1].plot(acc_TRAIN, 'b') #row=0, col=1
+    ax[0, 1].title.set_text("Training accuracy")
+    ax[1, 0].plot(loss_VAL, 'b') #row=1, col=0
+    ax[1, 0].title.set_text("Validation loss")
+    ax[1, 1].plot(acc_VAL, 'b') #row=1, col=1
+    ax[1, 1].title.set_text("Validation accuracy")
+    plt.show()
 
     # Testing
     test(model, features, adj, idx_test, labels)
