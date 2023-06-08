@@ -120,6 +120,7 @@ def test(model, features, adj, idx_test, labels):
           "loss= {:.4f}".format(loss_test.item()),
           "accuracy= {:.4f}".format(acc_test.item()))
     print("inference time: ", time.time()-t)
+    return loss_test, acc_test
     
 
 def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train, idx_val, idx_test, labels):
