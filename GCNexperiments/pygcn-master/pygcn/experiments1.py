@@ -28,7 +28,7 @@ dropout = 0.5
 lr = 0.01
 weight_decay = 5e-4
 num_epochs = 200
-num_runs = 10 #TODO: change this
+num_runs = 5 #TODO: change this
 
 exp_directory = "../experiment_results"
 
@@ -42,8 +42,8 @@ for i in range(num_runs):
             nclass=labels.max().item() + 1,
             dropout=dropout)
     loss, acc, train_time = run_experiment(num_epochs=num_epochs, model=model, lr=0.01, 
-                   weight_decay=weight_decay, features=features, adj=adj, 
-                   idx_train=idx_train, idx_val=idx_val, idx_test=idx_test, labels=labels)
+                   weight_decay=weight_decay, features=features, adj=adj, idx_train=idx_train, 
+                   idx_val=idx_val, idx_test=idx_test, labels=labels, model_name = "2L", run=i)
     GCN_2_loss.append(loss)
     GCN_2_acc.append(acc)
     GCN_2_time.append(train_time)
@@ -58,8 +58,8 @@ for i in range(num_runs):
             nclass=labels.max().item() + 1,
             dropout=dropout)
     loss, acc, train_time = run_experiment(num_epochs=num_epochs, model=model, lr=0.01, 
-                   weight_decay=weight_decay, features=features, adj=adj, 
-                   idx_train=idx_train, idx_val=idx_val, idx_test=idx_test, labels=labels)
+                   weight_decay=weight_decay, features=features, adj=adj, idx_train=idx_train, 
+                   idx_val=idx_val, idx_test=idx_test, labels=labels, model_name="3L", run=i)
     GCN_3_loss.append(loss)
     GCN_3_acc.append(acc)
     GCN_3_time.append(train_time)
@@ -85,8 +85,8 @@ for i in range(num_runs):
             allow_grad=True,
             smooth_fac=smooth_fac)
     loss, acc, train_time = run_experiment(num_epochs=num_epochs, model=model, lr=lr, 
-               weight_decay=weight_decay, features=features, adj=adj, 
-               idx_train=idx_train, idx_val=idx_val, idx_test=idx_test, labels=labels)
+               weight_decay=weight_decay, features=features, adj=adj, idx_train=idx_train, 
+               idx_val=idx_val, idx_test=idx_test, labels=labels, model_name="2iT", run=i)
     ite_2T_loss.append(loss)
     ite_2T_acc.append(acc)
     ite_2T_time.append(train_time)
@@ -105,8 +105,8 @@ for i in range(num_runs):
             allow_grad=True,
             smooth_fac=smooth_fac)
     loss, acc, train_time = run_experiment(num_epochs=num_epochs, model=model, lr=lr, 
-                   weight_decay=weight_decay, features=features, adj=adj, 
-                   idx_train=idx_train, idx_val=idx_val, idx_test=idx_test, labels=labels)
+                   weight_decay=weight_decay, features=features, adj=adj, idx_train=idx_train, 
+                   idx_val=idx_val, idx_test=idx_test, labels=labels, model_name="3iT", run=i)
     ite_3T_loss.append(loss)
     ite_3T_acc.append(acc)
     ite_3T_time.append(train_time)
@@ -124,8 +124,8 @@ for i in range(num_runs):
             allow_grad=False,
             smooth_fac=smooth_fac)
     loss, acc, train_time = run_experiment(num_epochs=num_epochs, model=model, lr=lr, 
-                   weight_decay=weight_decay, features=features, adj=adj, 
-                   idx_train=idx_train, idx_val=idx_val, idx_test=idx_test, labels=labels)
+                   weight_decay=weight_decay, features=features, adj=adj, idx_train=idx_train, 
+                   idx_val=idx_val, idx_test=idx_test, labels=labels, model_name="2iF", run=i)
     ite_2F_loss.append(loss)
     ite_2F_acc.append(acc)
     ite_2F_time.append(train_time)
@@ -143,8 +143,8 @@ for i in range(num_runs):
             allow_grad=False,
             smooth_fac=smooth_fac)
     loss, acc, train_time = run_experiment(num_epochs=num_epochs, model=model, lr=lr, 
-                   weight_decay=weight_decay, features=features, adj=adj, 
-                   idx_train=idx_train, idx_val=idx_val, idx_test=idx_test, labels=labels)
+                   weight_decay=weight_decay, features=features, adj=adj, idx_train=idx_train, 
+                   idx_val=idx_val, idx_test=idx_test, labels=labels, model_name="3iF", run=i)
     ite_3F_loss.append(loss)
     ite_3F_acc.append(acc)
     ite_3F_time.append(train_time)
