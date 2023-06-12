@@ -5,6 +5,7 @@ import time
 import torch.optim as optim
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
+import os
 
 
 def encode_onehot(labels):
@@ -42,19 +43,15 @@ def load_data(path="../data/cora/", dataset="cora"):
     features = normalize(features)
     adj = normalize(adj + sp.eye(adj.shape[0]))
 
-    idx_train = range(140)
-    idx_val = range(200, 500)
-    idx_test = range(500, 1500)
+    
 
     features = torch.FloatTensor(np.array(features.todense()))
     labels = torch.LongTensor(np.where(labels)[1])
     adj = sparse_mx_to_torch_sparse_tensor(adj)
 
-    idx_train = torch.LongTensor(idx_train)
-    idx_val = torch.LongTensor(idx_val)
-    idx_test = torch.LongTensor(idx_test)
+    
 
-    return adj, features, labels, idx_train, idx_val, idx_test
+    return adj, features, labels,
 
 
 def normalize(mx):
@@ -113,19 +110,29 @@ def train(epoch, model, optimizer, features, adj, idx_train, idx_val, labels):
 
 def test(model, features, adj, idx_test, labels):
     model.eval()
-    t = time.time()
+    
+    start_time = time.time()
     output = model(features, adj)
+    end_time = time.time()
+    
     loss_test = F.nll_loss(output[idx_test], labels[idx_test])
     acc_test = accuracy(output[idx_test], labels[idx_test])
+    
     print("Test set results:",
           "loss= {:.4f}".format(loss_test.item()),
           "accuracy= {:.4f}".format(acc_test.item()))
-    print("inference time: ", time.time()-t)
+    print("Testing time: ", end_time-start_time)
+    
     return loss_test, acc_test
     
 
-def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train, idx_val, idx_test, labels):
+def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train, idx_val, idx_test, labels, model_name, run):
     print("runrunrun!")
+
+    # current_dir = os.path.dirname(__file__)
+    # relative_path = save_path
+    # abs_path = os.path.join()
+
     loss_TRAIN = []
     acc_TRAIN = []
     loss_VAL = []
@@ -133,7 +140,7 @@ def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train
 
     optimizer = optim.Adam(model.parameters(),
                        lr=lr, weight_decay=weight_decay)
-    t_total = time.time()
+    total_start = time.time()
     for epoch in range(num_epochs):
         t = time.time()
     
@@ -160,18 +167,28 @@ def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train
 
         loss_VAL.append(loss_val.item())
         acc_VAL.append(acc_val.item())
+    
+    total_end = time.time()
+    training_time = total_end - total_start
+    
 
-        print('Epoch: {:04d}'.format(epoch+1),
-            'loss_train: {:.4f}'.format(loss_train.item()),
-            'acc_train: {:.4f}'.format(acc_train.item()),
-            'loss_val: {:.4f}'.format(loss_val.item()),
-            'acc_val: {:.4f}'.format(acc_val.item()),
-            'time: {:.4f}s'.format(time.time() - t))
+        # print('Epoch: {:04d}'.format(epoch+1),
+        #     'loss_train: {:.4f}'.format(loss_train.item()),
+        #     'acc_train: {:.4f}'.format(acc_train.item()),
+        #     'loss_val: {:.4f}'.format(loss_val.item()),
+        #     'acc_val: {:.4f}'.format(acc_val.item()),
+        #     'time: {:.4f}s'.format(time.time() - t))
         
 
     print("Optimization Finished!")
-    print("Total time elapsed: {:.4f}s".format(time.time() - t_total))
+    print("Total time elapsed: {:.4f}s".format(training_time))
+    
+    # Testing
+    loss_test, acc_test = test(model, features, adj, idx_test, labels)
 
+    title = model_name + "_run_" + str(run)
+    file_name = "Figures/" + title + ".png"
+    #Summary graphs
     fig, ax = plt.subplots(2, 2)
     fig.tight_layout(pad=5.0)
     ax[0, 0].plot(loss_TRAIN, 'b') #row=0, col=0
@@ -182,7 +199,16 @@ def run_experiment(num_epochs, model, lr, weight_decay, features, adj, idx_train
     ax[1, 0].title.set_text("Validation loss")
     ax[1, 1].plot(acc_VAL, 'b') #row=1, col=1
     ax[1, 1].title.set_text("Validation accuracy")
-    plt.show()
+    fig.suptitle(title)
+    fig.savefig(file_name)
 
-    # Testing
-    test(model, features, adj, idx_test, labels)
+    return loss_test, acc_test, training_time
+
+def print_stats(model_name, acc_test, training_time):
+    print("Experiment statistics for ", model_name)
+    mean_acc = np.mean(acc_test)
+    std_acc = np.std(acc_test)
+    mean_time = np.mean(training_time)
+    print("Mean accuracy: ", mean_acc)
+    print("std of accuracy: ", std_acc)
+    print("Mean training time: ", mean_time)
