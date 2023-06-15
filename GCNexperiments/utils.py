@@ -18,7 +18,8 @@ def train(epoch, model, optimizer, data):
     model.train()
     output = model(data.x, data.edge_index)
     loss_train = F.nll_loss(output[data.train_mask], data.y[data.train_mask])
-    acc_train = accuracy(output[data.train_mask], data.y[data.train_mask])
+    pred = output[data.train_mask].argmax(dim=1)
+    acc_train = accuracy(pred, data.y[data.train_mask])
     optimizer.zero_grad()
     loss_train.backward()
     optimizer.step()
@@ -26,8 +27,8 @@ def train(epoch, model, optimizer, data):
     model.eval()
     output = model(data.x, data.edge_index)
 
-    loss_val = F.nll_loss(output[data.eval_mask], data.y[data.eval_mask])
-    acc_val = accuracy(output[data.eval_mask], data.y[data.eval_mask])
+    loss_val = F.nll_loss(output[data.val_mask], data.y[data.val_mask])
+    acc_val = accuracy(output[data.val_mask], data.y[data.val_mask])
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(loss_train.item()),
           'acc_train: {:.4f}'.format(acc_train.item()),
@@ -46,12 +47,13 @@ def test(model, data):
     end_time = time.time()
     
     loss_test = F.nll_loss(output[data.test_mask], data.y[data.test_mask])
-    acc_test = accuracy(output[data.test_mask], data.y[data.test_mask])
+    pred = output[data.test_mask].argmax(dim=1)
+    acc_test = accuracy(pred, data.y[data.test_mask])
     
-    print("Test set results:",
-          "loss= {:.4f}".format(loss_test.item()),
-          "accuracy= {:.4f}".format(acc_test.item()))
-    print("Testing time: ", end_time-start_time)
+    # print("Test set results:",
+    #       "loss= {:.4f}".format(loss_test.item()),
+    #       "accuracy= {:.4f}".format(acc_test))
+    # print("Testing time: ", end_time-start_time)
     
     return loss_test, acc_test
     
@@ -72,7 +74,8 @@ def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=20
 
         output = model(data.x, data.edge_index)   
         loss_train = F.nll_loss(output[data.train_mask], data.y[data.train_mask])
-        acc_train = accuracy(output[data.train_mask], data.y[data.train_mask])
+        pred = output[data.train_mask].argmax(dim=1)
+        acc_train = accuracy(pred, data.y[data.train_mask])
         optimizer.zero_grad()
         loss_train.backward()
         optimizer.step()
@@ -81,46 +84,47 @@ def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=20
 
         model.eval()
         output = model(data.x, data.edge_index)
-        loss_val = F.nll_loss(output[data.eval_mask], data.y[data.eval_mask])
-        acc_val = accuracy(output[data.eval_mask], data.y[data.eval_mask])
+        loss_val = F.nll_loss(output[data.val_mask], data.y[data.val_mask])
+        pred = output[data.val_mask].argmax(dim=1)
+        acc_val = accuracy(pred, data.y[data.val_mask])
         
         loss_TRAIN.append(loss_train.item())
-        acc_TRAIN.append(acc_train.item())
+        acc_TRAIN.append(acc_train)
         loss_VAL.append(loss_val.item())
-        acc_VAL.append(acc_val.item())
+        acc_VAL.append(acc_val)
         
         print('Epoch: {:04d}'.format(epoch+1),
             'loss_train: {:.4f}'.format(loss_train.item()),
-            'acc_train: {:.4f}'.format(acc_train.item()),
+            'acc_train: {:.4f}'.format(acc_train),
             'loss_val: {:.4f}'.format(loss_val.item()),
-            'acc_val: {:.4f}'.format(acc_val.item()),
+            'acc_val: {:.4f}'.format(acc_val),
             'time: {:.4f}s'.format(time.time() - t))
 
     total_end = time.time()
     training_time = total_end - total_start
-    print("Optimization Finished!")
-    print("Total time elapsed: {:.4f}s".format(training_time))
+    # print("Optimization Finished!")
+    # print("Total time elapsed: {:.4f}s".format(training_time))
     
     # Testing
     loss_test, acc_test = test(model, data)
 
-    title = model_name + "_run_" + str(run)
-    file_name = "Figures/" + title + ".png"
-    #Summary graphs
-    fig, ax = plt.subplots(2, 2)
-    fig.tight_layout(pad=5.0)
-    ax[0, 0].plot(loss_TRAIN, 'b') #row=0, col=0
-    ax[0, 0].title.set_text("Training loss")
-    ax[0, 1].plot(acc_TRAIN, 'b') #row=0, col=1
-    ax[0, 1].title.set_text("Training accuracy")
-    ax[1, 0].plot(loss_VAL, 'b') #row=1, col=0
-    ax[1, 0].title.set_text("Validation loss")
-    ax[1, 1].plot(acc_VAL, 'b') #row=1, col=1
-    ax[1, 1].title.set_text("Validation accuracy")
-    fig.suptitle(title)
-    fig.savefig(file_name)
+    # title = model_name + "_run_" + str(run)
+    # file_name = "Figures/" + title + ".png"
+    # #Summary graphs
+    # fig, ax = plt.subplots(2, 2)
+    # fig.tight_layout(pad=5.0)
+    # ax[0, 0].plot(loss_TRAIN, 'b') #row=0, col=0
+    # ax[0, 0].title.set_text("Training loss")
+    # ax[0, 1].plot(acc_TRAIN, 'b') #row=0, col=1
+    # ax[0, 1].title.set_text("Training accuracy")
+    # ax[1, 0].plot(loss_VAL, 'b') #row=1, col=0
+    # ax[1, 0].title.set_text("Validation loss")
+    # ax[1, 1].plot(acc_VAL, 'b') #row=1, col=1
+    # ax[1, 1].title.set_text("Validation accuracy")
+    # fig.suptitle(title)
+    # fig.savefig(file_name)
 
-    return loss_test, acc_test, training_time
+    return loss_test.item(), acc_test, training_time
 
 def print_stats(model_name, acc_test, training_time):
     print("Experiment statistics for ", model_name)

@@ -17,19 +17,20 @@ class GCN(nn.Module):
                  dropout=0.5):
         super().__init__()
         self.first_gc = GCNConv(input_dim, hidden_dim)
-        if num_layers >=3:
-            self.gcs = nn.ModuleList([GCNConv(hidden_dim, hidden_dim) for i in range(num_layers-2)])
+        # self.gcs = None
+        # if num_layers >=3:
+        #     self.gcs = nn.ModuleList([GCNConv(hidden_dim, hidden_dim) for i in range(num_layers-2)])
         self.final_gc = GCNConv(hidden_dim, output_dim)
         self.dropout = dropout
     
     def forward(self, x, edge_index):
         x = F.relu(self.first_gc(x, edge_index))
         x = F.dropout(x, self.dropout, training=self.training)
-        if self.gcs is not None:
-            for layer in self.gcs:
-                x = F.relu(layer(x, edge_index))
-                x = F.dropout(x, self.dropout, training=self.training)
-        x = F.relu(self.final_gc(x, edge_index))
+        # if self.gcs is not None:
+        #     for layer in self.gcs:
+        #         x = F.relu(layer(x, edge_index))
+        #         x = F.dropout(x, self.dropout, training=self.training)
+        x = self.final_gc(x, edge_index)
         return F.log_softmax(x, dim=1)
     
 
@@ -66,7 +67,7 @@ class iterativeGCN(nn.Module):
         else:
             num_iter = self.num_eval_iter
         
-        for iter in num_iter:
+        for iter in range(num_iter):
             new_x = self.gc(x, edge_index)
             x = self._next_x(x, new_x)
             x = F.dropout(x, self.dropout, training=self.training)
