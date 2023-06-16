@@ -5,7 +5,7 @@ import time
 import torch.optim as optim
 import torch.nn.functional as F
 import matplotlib.pyplot as plt
-import os
+import logging
 
 def accuracy(guess, truth):
     correct = guess == truth
@@ -31,9 +31,9 @@ def train(epoch, model, optimizer, data):
     acc_val = accuracy(output[data.val_mask], data.y[data.val_mask])
     print('Epoch: {:04d}'.format(epoch+1),
           'loss_train: {:.4f}'.format(loss_train.item()),
-          'acc_train: {:.4f}'.format(acc_train.item()),
+          'acc_train: {:.4f}'.format(acc_train),
           'loss_val: {:.4f}'.format(loss_val.item()),
-          'acc_val: {:.4f}'.format(acc_val.item()),
+          'acc_val: {:.4f}'.format(acc_val),
           'time: {:.4f}s'.format(time.time() - t))
     
     return loss_train, acc_train, loss_val, acc_val
@@ -58,7 +58,7 @@ def test(model, data):
     return loss_test, acc_test
     
 
-def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=200):
+def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=200, plot_fig=False):
     loss_TRAIN = []
     acc_TRAIN = []
     loss_VAL = []
@@ -93,12 +93,12 @@ def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=20
         loss_VAL.append(loss_val.item())
         acc_VAL.append(acc_val)
         
-        print('Epoch: {:04d}'.format(epoch+1),
-            'loss_train: {:.4f}'.format(loss_train.item()),
-            'acc_train: {:.4f}'.format(acc_train),
-            'loss_val: {:.4f}'.format(loss_val.item()),
-            'acc_val: {:.4f}'.format(acc_val),
-            'time: {:.4f}s'.format(time.time() - t))
+        # print('Epoch: {:04d}'.format(epoch+1),
+        #     'loss_train: {:.4f}'.format(loss_train.item()),
+        #     'acc_train: {:.4f}'.format(acc_train),
+        #     'loss_val: {:.4f}'.format(loss_val.item()),
+        #     'acc_val: {:.4f}'.format(acc_val),
+        #     'time: {:.4f}s'.format(time.time() - t))
 
     total_end = time.time()
     training_time = total_end - total_start
@@ -108,21 +108,22 @@ def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=20
     # Testing
     loss_test, acc_test = test(model, data)
 
-    # title = model_name + "_run_" + str(run)
-    # file_name = "Figures/" + title + ".png"
-    # #Summary graphs
-    # fig, ax = plt.subplots(2, 2)
-    # fig.tight_layout(pad=5.0)
-    # ax[0, 0].plot(loss_TRAIN, 'b') #row=0, col=0
-    # ax[0, 0].title.set_text("Training loss")
-    # ax[0, 1].plot(acc_TRAIN, 'b') #row=0, col=1
-    # ax[0, 1].title.set_text("Training accuracy")
-    # ax[1, 0].plot(loss_VAL, 'b') #row=1, col=0
-    # ax[1, 0].title.set_text("Validation loss")
-    # ax[1, 1].plot(acc_VAL, 'b') #row=1, col=1
-    # ax[1, 1].title.set_text("Validation accuracy")
-    # fig.suptitle(title)
-    # fig.savefig(file_name)
+    if plot_fig:
+        title = model_name + "_run_" + str(run)
+        file_name = "Figures/" + title + ".png"
+        #Summary graphs
+        fig, ax = plt.subplots(2, 2)
+        fig.tight_layout(pad=5.0)
+        ax[0, 0].plot(loss_TRAIN, 'b') #row=0, col=0
+        ax[0, 0].title.set_text("Training loss")
+        ax[0, 1].plot(acc_TRAIN, 'b') #row=0, col=1
+        ax[0, 1].title.set_text("Training accuracy")
+        ax[1, 0].plot(loss_VAL, 'b') #row=1, col=0
+        ax[1, 0].title.set_text("Validation loss")
+        ax[1, 1].plot(acc_VAL, 'b') #row=1, col=1
+        ax[1, 1].title.set_text("Validation accuracy")
+        fig.suptitle(title)
+        fig.savefig(file_name)
 
     return loss_test.item(), acc_test, training_time
 

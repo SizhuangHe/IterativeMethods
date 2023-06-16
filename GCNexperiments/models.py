@@ -60,7 +60,7 @@ class iterativeGCN(nn.Module):
         return next_x
 
     def forward(self, x, edge_index):
-        x = self.encoder(x)
+        x = F.relu(self.encoder(x))
         x = F.dropout(x, self.dropout, training=self.training)
         if self.training:
             num_iter = self.num_train_iter
@@ -68,9 +68,10 @@ class iterativeGCN(nn.Module):
             num_iter = self.num_eval_iter
         
         for iter in range(num_iter):
-            new_x = self.gc(x, edge_index)
-            x = self._next_x(x, new_x)
-            x = F.dropout(x, self.dropout, training=self.training)
-        
+            old_x = x
+            x = F.relu(self.gc(x, edge_index))
+            new_x = F.dropout(x, self.dropout, training=self.training)
+            x = self._next_x(old_x, new_x)
+            
         x = self.decoder(x)
         return F.log_softmax(x, dim=1)
