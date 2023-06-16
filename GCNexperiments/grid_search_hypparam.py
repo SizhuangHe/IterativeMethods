@@ -21,7 +21,7 @@ logger.addHandler(file_handler)
 
 
 DS_NAME = ['Cora'] #only Cora for now
-LR = np.arange(0.005, 0.01, 0.0005) 
+LR = [0.0105, 0.0110]
 SMOOTH_FAC = np.arange(0.5, 1 , 0.1) 
 HID_DIM = [8, 16, 32] # 3
 WD = [1e-4, 3e-4, 5e-4]
