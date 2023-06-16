@@ -20,9 +20,6 @@ WD = np.arange(1e-4, 1e-3, 1e-4)
 HID_DIM = [8, 16, 32, 64]
 num_runs = 3
 
-# LR = [0.001, 0.002]
-# SMOOTH_FAC = [0.5, 0.7]
-
 
 for ds_name in DS_NAME:
     print("Dataset: ", ds_name)
