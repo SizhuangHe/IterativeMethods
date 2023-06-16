@@ -12,6 +12,13 @@ from torch_geometric.transforms import NormalizeFeatures
 from  utils import run_experiment
 from models import iterativeGCN
 
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+formatter = logging.Formatter("%(asctime)s: %(message)s")
+file_handler = logging.FileHandler("grid_search.log")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
+
 
 DS_NAME = ['Cora'] #only Cora for now
 LR = np.arange(0.001, 0.01, 0.0005)
@@ -22,10 +29,11 @@ num_runs = 3
 
 
 for ds_name in DS_NAME:
-    print("Dataset: ", ds_name)
+    logger.info("Experiment begins, dataset: {}".format(ds_name))
     
     dataset = Planetoid(root='data/Planetoid', name=ds_name, transform=NormalizeFeatures())
     data = dataset[0]
+    
     running_max_acc = 0
     max_lr = -1
     max_sm_fac = -1
@@ -62,6 +70,7 @@ for ds_name in DS_NAME:
             mean_acc = run_acc / num_runs
             print("Experiment ", curr_exp, " summary: mean test accuracy:{:.4}".format(mean_acc))
             print()
+            logger.info("Parameter set 1: hidden_dim = {:.4}, lr={:.4f}, smooth_fac={:.4f}, weight_decay = {:.4f}")
             curr_exp += 1    
             
             if mean_acc > running_max_acc:

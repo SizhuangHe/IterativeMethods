@@ -29,12 +29,12 @@ def train(epoch, model, optimizer, data):
 
     loss_val = F.nll_loss(output[data.val_mask], data.y[data.val_mask])
     acc_val = accuracy(output[data.val_mask], data.y[data.val_mask])
-    print('Epoch: {:04d}'.format(epoch+1),
-          'loss_train: {:.4f}'.format(loss_train.item()),
-          'acc_train: {:.4f}'.format(acc_train),
-          'loss_val: {:.4f}'.format(loss_val.item()),
-          'acc_val: {:.4f}'.format(acc_val),
-          'time: {:.4f}s'.format(time.time() - t))
+    # print('Epoch: {:04d}'.format(epoch+1),
+    #       'loss_train: {:.4f}'.format(loss_train.item()),
+    #       'acc_train: {:.4f}'.format(acc_train),
+    #       'loss_val: {:.4f}'.format(loss_val.item()),
+    #       'acc_val: {:.4f}'.format(acc_val),
+    #       'time: {:.4f}s'.format(time.time() - t))
     
     return loss_train, acc_train, loss_val, acc_val
 
@@ -50,10 +50,10 @@ def test(model, data):
     pred = output[data.test_mask].argmax(dim=1)
     acc_test = accuracy(pred, data.y[data.test_mask])
     
-    print("Test set results:",
-          "loss= {:.4f}".format(loss_test.item()),
-          "accuracy= {:.4f}".format(acc_test))
-    print("Testing time: ", end_time-start_time)
+    # print("Test set results:",
+    #       "loss= {:.4f}".format(loss_test.item()),
+    #       "accuracy= {:.4f}".format(acc_test))
+    # print("Testing time: ", end_time-start_time)
     
     return loss_test, acc_test
     
@@ -102,8 +102,8 @@ def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=20
 
     total_end = time.time()
     training_time = total_end - total_start
-    print("Optimization Finished!")
-    print("Total time elapsed: {:.4f}s".format(training_time))
+    # print("Optimization Finished!")
+    # print("Total time elapsed: {:.4f}s".format(training_time))
     
     # Testing
     loss_test, acc_test = test(model, data)
