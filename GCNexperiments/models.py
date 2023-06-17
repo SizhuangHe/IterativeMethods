@@ -5,6 +5,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric
 from torch_geometric.nn import GCNConv
+import logging
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.DEBUG)
+formatter = logging.Formatter("%(asctime)s: %(message)s")
+file_handler = logging.FileHandler("model_debug.log")
+file_handler.setFormatter(formatter)
+logger.addHandler(file_handler)
 
 class GCN(nn.Module):
     '''
@@ -53,11 +61,18 @@ class iterativeGCN(nn.Module):
         self.decoder = nn.Linear(hidden_dim, output_dim)
         
         self.num_train_iter = num_train_iter
-        self.schedule = schedule
+        self.train_schedule = np.full(self.num_train_iter, smooth_fac)
+        if schedule is not None:
+            self.eval_schedule = schedule
+        else:
+            self.eval_schedule = self.train_schedule
         self.smooth_fac = smooth_fac
         self.dropout = dropout
         if xavier_init:
             self._initialize_weights()
+        
+        logger.debug("Model initialization: Training schedule:{}".format(self.train_schedule))
+        logger.debug("Evaluation schedule: {}".format(self.eval_schedule))
         
 
     def _initialize_weights(self):
@@ -77,12 +92,13 @@ class iterativeGCN(nn.Module):
         x = F.relu(self.encoder(x))
         x = F.dropout(x, self.dropout, training=self.training)
         
-        schedule = np.full(self.num_train_iter, self.smooth_fac)
-        if (not self.training) and (self.schedule is not None):
-            schedule = self.schedule
+        if self.training:
+            schedule = self.train_schedule
+        else:
+            schedule = self.eval_schedule
 
         for iter in range(len(schedule)):
-            smooth_fac = schedule[iter]
+            smooth_fac = schedule[iter]      
             old_x = x
             x = F.relu(self.gc(x, edge_index))
             new_x = F.dropout(x, self.dropout, training=self.training)
