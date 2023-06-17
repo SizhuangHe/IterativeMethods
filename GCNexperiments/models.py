@@ -1,4 +1,5 @@
 import time
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -22,7 +23,7 @@ class GCN(nn.Module):
         #     self.gcs = nn.ModuleList([GCNConv(hidden_dim, hidden_dim) for i in range(num_layers-2)])
         self.final_gc = GCNConv(hidden_dim, output_dim)
         self.dropout = dropout
-    
+
     def forward(self, x, edge_index):
         x = F.relu(self.first_gc(x, edge_index))
         x = F.dropout(x, self.dropout, training=self.training)
@@ -40,9 +41,10 @@ class iterativeGCN(nn.Module):
                  output_dim,
                  hidden_dim,
                  num_train_iter,
-                 num_eval_iter,
                  smooth_fac,
-                 dropout
+                 dropout,
+                 schedule=None,
+                 xavier_init=False
                  ):
         super().__init__()
         
@@ -51,27 +53,40 @@ class iterativeGCN(nn.Module):
         self.decoder = nn.Linear(hidden_dim, output_dim)
         
         self.num_train_iter = num_train_iter
-        self.num_eval_iter = num_eval_iter
+        self.schedule = schedule
         self.smooth_fac = smooth_fac
         self.dropout = dropout
+        if xavier_init:
+            self._initialize_weights()
+        
+
+    def _initialize_weights(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear):
+                nn.init.xavier_normal_(m.weight)
+                # GCNConv layers are already Xavier initilized
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
     
-    def _next_x(self, old_x, new_x):
-        next_x = self.smooth_fac * old_x + (1 - self.smooth_fac) * new_x
+    
+    def _next_x(self, old_x, new_x, smooth_fac):
+        next_x = smooth_fac * old_x + (1 - smooth_fac) * new_x
         return next_x
 
     def forward(self, x, edge_index):
         x = F.relu(self.encoder(x))
         x = F.dropout(x, self.dropout, training=self.training)
-        if self.training:
-            num_iter = self.num_train_iter
-        else:
-            num_iter = self.num_eval_iter
         
-        for iter in range(num_iter):
+        schedule = np.full(self.num_train_iter, self.smooth_fac)
+        if (not self.training) and (self.schedule is not None):
+            schedule = self.schedule
+
+        for iter in range(len(schedule)):
+            smooth_fac = schedule[iter]
             old_x = x
             x = F.relu(self.gc(x, edge_index))
             new_x = F.dropout(x, self.dropout, training=self.training)
-            x = self._next_x(old_x, new_x)
+            x = self._next_x(old_x, new_x, smooth_fac)
             
         x = self.decoder(x)
         return F.log_softmax(x, dim=1)

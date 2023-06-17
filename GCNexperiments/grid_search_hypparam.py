@@ -21,7 +21,7 @@ logger.addHandler(file_handler)
 
 
 DS_NAME = ['Cora'] #only Cora for now
-LR = np.arange(0.0115, 0.02, 0.0005)
+LR = [0.02]
 SMOOTH_FAC = np.arange(0.5, 1 , 0.1) 
 HID_DIM = [8, 16, 32] # 3
 WD = [1e-4, 3e-4, 5e-4]
@@ -55,7 +55,6 @@ for ds_name in DS_NAME:
                                                 output_dim=dataset.num_classes,
                                                 hidden_dim=16,
                                                 num_train_iter=2,
-                                                num_eval_iter=2,
                                                 smooth_fac=smooth_fac,
                                                 dropout=0.5)
                         loss_test, acc_test, training_time = run_experiment(model=model, 
