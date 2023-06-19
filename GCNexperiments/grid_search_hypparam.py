@@ -53,7 +53,7 @@ for ds_name in DS_NAME:
                     for run in range(num_runs):
                         model = iterativeGCN(input_dim=dataset.num_features,
                                                 output_dim=dataset.num_classes,
-                                                hidden_dim=16,
+                                                hidden_dim=hid_dim,
                                                 num_train_iter=2,
                                                 smooth_fac=smooth_fac,
                                                 dropout=0.5)
