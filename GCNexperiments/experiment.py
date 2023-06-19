@@ -28,16 +28,16 @@ logger.addHandler(file_handler)
 dataset = Planetoid(root='data/Planetoid', name="Cora", transform=NormalizeFeatures())
 data = dataset[0]
 
-lr = 0.0075
+lr = 0.01
 smooth_fac = 0.7
 hidden_dim = 32
-weight_decay = 5e-4
+weight_decay = 3e-4
 
 num_runs = 100
 train_iter = 2
 num_layers = 2
 num_epochs = 200
-xavier_init = True
+xavier_init = False
 run_non_iter = True
 
 logger.info("Experiment begins.")

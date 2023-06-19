@@ -21,15 +21,15 @@ logger.addHandler(file_handler)
 
 
 DS_NAME = ['Cora'] #only Cora for now
-LR = np.arange(0.005, 0.01, 0.0005)
+LR = [0.0105, 0.0110, 0.0115, 0.012]
 SMOOTH_FAC = np.arange(0.5, 1 , 0.1) 
-HID_DIM = [8, 16, 32] # 3
-WD = [1e-4, 3e-4, 5e-4]
+HID_DIM = [16, 32] 
+WD = [5e-4]
 num_runs = 5
 
 # total_experiments =  len(DS_NAME) * LR.size * SMOOTH_FAC.size * len(HID_DIM) * len(WD) *  num_runs
 total_experiments =  len(DS_NAME) * len(LR) * len(SMOOTH_FAC) * len(HID_DIM) * len(WD) *  num_runs
-print("{} sets of parameters to search from!".format(total_experiments))
+print("{} sets of parameters to search from!".format(total_experiments/num_runs))
 
 for ds_name in DS_NAME:
     logger.info("Experiment begins, dataset: {}".format(ds_name))

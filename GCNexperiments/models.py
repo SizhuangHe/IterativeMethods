@@ -98,3 +98,50 @@ class iterativeGCN(nn.Module):
             x = self._next_x(old_x, new_x, smooth_fac) 
         x = self.decoder(x)
         return F.log_softmax(x, dim=1)
+    
+class multilayer_iterativeGCN(iterativeGCN):
+    def __init__(self, 
+                 input_dim, 
+                 output_dim,
+                 hidden_dim,
+                 num_train_iter,
+                 smooth_fac,
+                 dropout,
+                 schedule=None,
+                 xavier_init=False,
+                 num_layers_per_iteration = 2
+                 ):
+        self.num_layers_per_iteration = num_layers_per_iteration
+        self.encoder = nn.Linear(input_dim, hidden_dim)
+        if num_layers_per_iteration < 2:
+            raise Exception("invalid number of layers per iteration")
+        self.gcs = nn.ModuleList([GCNConv(hidden_dim, hidden_dim) for _ in range(num_layers_per_iteration)])
+        self.decoder = nn.Linear(hidden_dim, output_dim)
+        
+        self.train_schedule = np.full(num_train_iter, smooth_fac)
+        if schedule is not None:
+            self.eval_schedule = schedule
+        else:
+            self.eval_schedule = self.train_schedule
+        
+        self.dropout = dropout
+        if xavier_init:
+            self._init_xavier()
+
+        def forward(self, x, edge_index):
+            if self.training:
+                schedule = self.train_schedule
+            else:
+                schedule = self.eval_schedule
+            
+            x = F.relu(self.encoder(x))
+            x = F.dropout(x, self.dropout, training=self.training)
+            for smooth_fac in schedule:      
+                old_x = x
+                for layer in self.gcs:
+                    x = F.relu(layer(x, edge_index))
+                    x = F.dropout(x, self.dropout, training=self.training)
+                new_x = x
+                x = self._next_x(old_x, new_x, smooth_fac) 
+            x = self.decoder(x)
+            return F.log_softmax(x, dim=1)

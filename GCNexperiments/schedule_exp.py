@@ -27,12 +27,12 @@ uniform = np.full(30, 0.97)
 linear = np.linspace(0.9, 1, 30)
 tanh = F.tanh(torch.Tensor(np.linspace(1, 5, 30)))
 
-lr = 0.01
+lr = 0.0075
 weight_decay = 5e-4
 num_runs = 100
 smooth_fac = 0.7
-hid_dim = 16
-num_iter = 3
+hid_dim = 32
+num_iter = 2
 
 dataset = Planetoid(root='data/Planetoid', name='Cora', transform=NormalizeFeatures())
 data = dataset[0]
@@ -126,7 +126,7 @@ for i in range(num_runs):
     print("Run {:03d}/{:03d}, accuracy: no schedule {:.4}, sigmoid {:.4}, uniform {:.4}, linear {:.4}, tanh {:.4}, time elapsed {:.4}".format(i+1, num_runs, ACC_orig[-1], ACC_sigm[-1], ACC_unif[-1], ACC_line[-1], ACC_tanh[-1], end_t-start_t))
 
 fig = plt.figure(figsize =(10, 7))
-plt.boxplot([ACC_orig, ACC_sigm, ACC_unif, ACC_line, ACC_tanh])
+plt.violinplot([ACC_orig, ACC_sigm, ACC_unif, ACC_line, ACC_tanh], showmedians=True, showextrema=True)
 fig.savefig("schedule_exp")
 
 mean_orig = np.mean(ACC_orig)
