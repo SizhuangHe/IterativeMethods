@@ -23,8 +23,8 @@ file_handler.setFormatter(formatter)
 logger.addHandler(file_handler)
 
 sigmoid = F.sigmoid(torch.Tensor(np.arange(1, 11, 0.5)))
-uniform = np.full(20, 0.8)
-linear = np.linspace(0.7, 1, 20)
+uniform = np.full(20, 0.95)
+linear = np.linspace(0.8, 1, 20)
 
 lr = 0.01
 weight_decay = 5e-4
@@ -45,9 +45,9 @@ for i in range(num_runs):
     start_t = time.time()
     model_origin = iterativeGCN(input_dim=dataset.num_features,
                                 output_dim=dataset.num_classes,
-                                hidden_dim=16,
-                                num_train_iter=2,
-                                smooth_fac=0.7,
+                                hidden_dim=hid_dim,
+                                num_train_iter=num_iter,
+                                smooth_fac=smooth_fac,
                                 schedule=None,
                                 dropout=0.5,
                                 xavier_init=True
@@ -66,9 +66,9 @@ for i in range(num_runs):
     
     model_sigm = iterativeGCN(input_dim=dataset.num_features,
                                 output_dim=dataset.num_classes,
-                                hidden_dim=16,
-                                num_train_iter=2,
-                                smooth_fac=0.7,
+                                hidden_dim=hid_dim,
+                                num_train_iter=num_iter,
+                                smooth_fac=smooth_fac,
                                 schedule=sigmoid,
                                 dropout=0.5,
                                 xavier_init=True
@@ -80,9 +80,9 @@ for i in range(num_runs):
 
     model_unif = iterativeGCN(input_dim=dataset.num_features,
                                 output_dim=dataset.num_classes,
-                                hidden_dim=16,
-                                num_train_iter=2,
-                                smooth_fac=0.7,
+                                hidden_dim=hid_dim,
+                                num_train_iter=num_iter,
+                                smooth_fac=smooth_fac,
                                 schedule=uniform,
                                 dropout=0.5,
                                 xavier_init=True
@@ -94,9 +94,9 @@ for i in range(num_runs):
 
     model_line = iterativeGCN(input_dim=dataset.num_features,
                                 output_dim=dataset.num_classes,
-                                hidden_dim=16,
-                                num_train_iter=2,
-                                smooth_fac=0.7,
+                                hidden_dim=hid_dim,
+                                num_train_iter=num_iter,
+                                smooth_fac=smooth_fac,
                                 schedule=linear,
                                 dropout=0.5,
                                 xavier_init=True
@@ -107,9 +107,24 @@ for i in range(num_runs):
     del model_line
     
     end_t = time.time()
-    print("Run {:03d}/{:03d} finished! Time elapsed: {:.4}".format(i+1, num_runs, end_t-start_t))
-    logger.info("Run {:03d}/{:03d}, accuracy: no schedule {:.4}, sigmoid {:.4}, uniform {:.4}, linear {:.4}".format(i+1, num_runs, ACC_orig[-1], ACC_sigm[-1], ACC_unif[-1], ACC_line[-1]))
+    print("Run {:03d}/{:03d}, accuracy: no schedule {:.4}, sigmoid {:.4}, uniform {:.4}, linear {:.4}, time elapsed {:.4}".format(i+1, num_runs, ACC_orig[-1], ACC_sigm[-1], ACC_unif[-1], ACC_line[-1], end_t-start_t))
 
 fig = plt.figure(figsize =(10, 7))
 plt.boxplot([ACC_orig, ACC_sigm, ACC_unif, ACC_line])
 fig.savefig("schedule_exp")
+
+mean_orig = np.mean(ACC_orig)
+mean_sigm = np.mean(ACC_sigm)
+mean_unif = np.mean(ACC_unif)
+mean_line = np.mean(ACC_line)
+std_orig = np.std(ACC_orig)
+std_sigm = np.std(ACC_sigm)
+std_unif = np.std(ACC_unif)
+std_line = np.std(ACC_line)
+
+logger.info("--> Experiment: lr={:.4}, weight_decay={:.4}, smooth_fac={:.4}, hidden_dim={:02d}, num_iteration={}".format(lr, weight_decay, smooth_fac, hid_dim, num_iter))
+logger.info("No schedule: {}".format(np.full(num_iter, smooth_fac)))
+logger.info("Sigmoid schedule: {}".format(sigmoid))
+logger.info("Uniform schedule: {}".format(uniform))
+logger.info("Linear schedule: {}".format(linear))
+logger.info("Result: accuracy: no schedule: {:.4} +/- {:.4}, sigmoid: {:.4} +/- {:.4}, uniform: {:.4} +/- {:.4}, linear: {:.4} +/- {:.4}".format(mean_orig, std_orig, mean_sigm, std_sigm, mean_unif, std_unif, mean_line, std_line))
