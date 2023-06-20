@@ -28,10 +28,10 @@ logger.addHandler(file_handler)
 dataset = Planetoid(root='data/Planetoid', name="Cora", transform=NormalizeFeatures())
 data = dataset[0]
 
-lr = 0.01
-smooth_fac = 0.7
+lr = 0.0485
+smooth_fac = 0.6
 hidden_dim = 32
-weight_decay = 3e-4
+weight_decay = 5e-4
 
 num_runs = 100
 train_iter = 2
