@@ -92,18 +92,9 @@ def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=20
         acc_TRAIN.append(acc_train)
         loss_VAL.append(loss_val.item())
         acc_VAL.append(acc_val)
-        
-        # print('Epoch: {:04d}'.format(epoch+1),
-        #     'loss_train: {:.4f}'.format(loss_train.item()),
-        #     'acc_train: {:.4f}'.format(acc_train),
-        #     'loss_val: {:.4f}'.format(loss_val.item()),
-        #     'acc_val: {:.4f}'.format(acc_val),
-        #     'time: {:.4f}s'.format(time.time() - t))
 
     total_end = time.time()
     training_time = total_end - total_start
-    # print("Optimization Finished!")
-    # print("Total time elapsed: {:.4f}s".format(training_time))
     
     # Testing
     loss_test, acc_test = test(model, data)
@@ -111,18 +102,18 @@ def run_experiment(model, data, lr, weight_decay, model_name, run, num_epochs=20
     if plot_fig:
         title = model_name + "_run_" + str(run)
         file_name = "Figures/" + title + ".png"
-        #Summary graphs
-        fig, ax = plt.subplots(2, 2)
-        fig.tight_layout(pad=5.0)
-        ax[0, 0].plot(loss_TRAIN, 'b') #row=0, col=0
-        ax[0, 0].title.set_text("Training loss")
-        ax[0, 1].plot(acc_TRAIN, 'b') #row=0, col=1
-        ax[0, 1].title.set_text("Training accuracy")
-        ax[1, 0].plot(loss_VAL, 'b') #row=1, col=0
-        ax[1, 0].title.set_text("Validation loss")
-        ax[1, 1].plot(acc_VAL, 'b') #row=1, col=1
-        ax[1, 1].title.set_text("Validation accuracy")
-        fig.suptitle(title)
+        # #Summary graphs
+        # fig, ax = plt.subplots(2, 2)
+        # fig.tight_layout(pad=5.0)
+        # ax[0, 0].plot(loss_TRAIN, 'b') #row=0, col=0
+        # ax[0, 0].title.set_text("Training loss")
+        # ax[0, 1].plot(acc_TRAIN, 'b') #row=0, col=1
+        # ax[0, 1].title.set_text("Training accuracy")
+        # ax[1, 0].plot(loss_VAL, 'b') #row=1, col=0
+        # ax[1, 0].title.set_text("Validation loss")
+        # ax[1, 1].plot(acc_VAL, 'b') #row=1, col=1
+        # ax[1, 1].title.set_text("Validation accuracy")
+        # fig.suptitle(title)
         fig.savefig(file_name)
 
     return loss_test.item(), acc_test, training_time
