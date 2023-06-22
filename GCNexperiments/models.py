@@ -1,18 +1,36 @@
-import time
 import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torch_geometric
 from torch_geometric.nn import GCNConv
-import logging
 
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s: %(message)s")
-file_handler = logging.FileHandler("model_debug.log")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
+class only_EncDec(nn.Module):
+    def __init__(self, 
+                 input_dim, 
+                 output_dim,
+                 hidden_dim,
+                 dropout=0.5,
+                 xavier_init=False):
+        super().__init__()
+        self.first_lin = nn.Linear(input_dim, hidden_dim)
+        self.final_lin = nn.Linear(hidden_dim, output_dim)
+        self.dropout = dropout
+        if xavier_init:
+            self._init_xavier()
+    
+    def _init_xavier(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear): 
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+
+    def forward(self, x, edge_index):
+        x = F.relu(self.first_lin(x))
+        x = F.dropout(x, self.dropout, training=self.training)
+        x = self.final_lin(x)
+        return F.log_softmax(x, dim=1)
 
 class GCN(nn.Module):
     '''
@@ -42,7 +60,6 @@ class GCN(nn.Module):
         x = self.final_gc(x, edge_index)
         return F.log_softmax(x, dim=1)
     
-
 class MLP_GCN(nn.Module):
     '''
     For experiment. Use same MLP as encoder/decoder and GCs in between.
@@ -145,9 +162,6 @@ class iterativeNN(nn.Module):
         if xavier_init:
             self._init_xavier()
         
-        logger.debug("Model initialization: Training schedule:{}".format(self.train_schedule))
-        logger.debug("Evaluation schedule: {}".format(self.eval_schedule))
-        
     def _init_xavier(self):
         for m in self.modules():
             if isinstance(m, nn.Linear): 
@@ -196,13 +210,9 @@ class iterativeGCN(nn.Module):
             self.eval_schedule = schedule
         else:
             self.eval_schedule = self.train_schedule
-        
         self.dropout = dropout
         if xavier_init:
             self._init_xavier()
-        
-        logger.debug("Model initialization: Training schedule:{}".format(self.train_schedule))
-        logger.debug("Evaluation schedule: {}".format(self.eval_schedule))
         
     def _init_xavier(self):
         for m in self.modules():
