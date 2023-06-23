@@ -3,7 +3,7 @@ from __future__ import print_function
 import numpy as np
 import torch
 import torch.nn.functional as F
-from utils import make_Planetoid_data, train, test
+from utils import make_Planetoid_data, train, test, make_uniform_schedule
 from models import iterativeGCN, GCN
 import wandb
 wandb.login()
@@ -13,12 +13,13 @@ def run_exp(hyper=None):
     config = wandb.config
     data, num_features, num_classes = make_Planetoid_data(config)
     
+    
     for iter in range(1, 11):
+        train_schedule = make_uniform_schedule(iter, config.smooth_fac)
         iterative_gcn = iterativeGCN(input_dim=num_features,
                                     output_dim=num_classes,
                                     hidden_dim=config.hid_dim,
-                                    num_train_iter=iter,
-                                    smooth_fac=config.smooth_fac,
+                                    train_schedule=train_schedule,
                                     dropout=config.dropout)
         train(iterative_gcn, data, config)
         loss_test, acc_test = test(iterative_gcn, data)
@@ -52,12 +53,12 @@ def run_exp(hyper=None):
 config = {
     'num_epochs': 200,
     'dataset_name': "Cora",
-    'noise_percent': 0.7,
+    'noise_percent': 0.4,
     'hid_dim': 32,
-    'num_iter_layers': 9,
-    'smooth_fac': 0.55,
+    'num_iter_layers': 6,
+    'smooth_fac': 0.525,
     'dropout': 0.5,
-    'learning_rate': 0.002,
+    'learning_rate': 0.011,
     'weight_decay': 4e-4
 } 
 

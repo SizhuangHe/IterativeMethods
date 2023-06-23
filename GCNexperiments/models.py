@@ -194,10 +194,9 @@ class iterativeGCN(nn.Module):
                  input_dim, 
                  output_dim,
                  hidden_dim,
-                 num_train_iter,
-                 smooth_fac,
                  dropout,
-                 schedule=None,
+                 train_schedule,
+                 eval_schedule=None,
                  xavier_init=False
                  ):
         super().__init__() 
@@ -205,9 +204,9 @@ class iterativeGCN(nn.Module):
         self.gc = GCNConv(hidden_dim, hidden_dim)
         self.decoder = nn.Linear(hidden_dim, output_dim)
         
-        self.train_schedule = np.full(num_train_iter, smooth_fac)
-        if schedule is not None:
-            self.eval_schedule = schedule
+        self.train_schedule = train_schedule
+        if eval_schedule is not None:
+            self.eval_schedule = eval_schedule
         else:
             self.eval_schedule = self.train_schedule
         self.dropout = dropout

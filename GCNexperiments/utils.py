@@ -14,6 +14,9 @@ def accuracy(guess, truth):
     acc = correct.sum().item() / truth.size(dim=0)
     return acc
 
+def make_uniform_schedule(length, smooth_fac):
+    return np.full(length, smooth_fac)
+
 def add_noise(data, percent=0):
     #add random 1's to data
     if percent > 0 and percent <= 1:
@@ -96,11 +99,11 @@ def exp_per_model(model, data, config):
         'test_accuracy': acc_test
     })
 
-def build_iterativeGCN(config, input_dim, output_dim):
+def build_iterativeGCN(config, input_dim, output_dim, train_schedule):
     model = iterativeGCN(input_dim=input_dim,
                             output_dim=output_dim,
                             hidden_dim=config.hid_dim,
-                            num_train_iter=config.num_iter_layers,
-                            smooth_fac=config.smooth_fac,
-                            dropout=config.dropout)
+                            dropout=config.dropout,
+                            train_schedule=train_schedule,
+                            xavier_init=True)
     return model
