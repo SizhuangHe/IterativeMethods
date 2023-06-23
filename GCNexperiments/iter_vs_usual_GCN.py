@@ -63,7 +63,7 @@ config_iter = {
 config_usual = {
     'num_epochs': 200,
     'dataset_name': "Cora",
-    'noise_percent': 0.5,
+    'noise_percent': 0.7,
     'hid_dim': 32,
     'num_iter_layers': 4,
     'smooth_fac': 0.45,
