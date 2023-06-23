@@ -8,6 +8,11 @@ from models import iterativeGCN, GCN
 import wandb
 wandb.login()
 
+'''
+In this script, we train and evaluate iterativeGCNs and usual GCNs with different iterations/layers
+and see how performance change over iterations/layers
+'''
+
 def run_exp(hyper=None):
     wandb.init(config=hyper, job_type="iter_layer_vs_perfm", project="IterativeMethods", tags=["iterativeGCN"])
     config = wandb.config

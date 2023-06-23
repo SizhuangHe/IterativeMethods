@@ -9,6 +9,10 @@ from models import iterativeGCN
 
 import wandb
 
+'''
+This file contains for utility functions for experiments.
+'''
+
 def accuracy(guess, truth):
     correct = guess == truth
     acc = correct.sum().item() / truth.size(dim=0)

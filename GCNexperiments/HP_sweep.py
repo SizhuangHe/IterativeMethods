@@ -11,13 +11,22 @@ from models import iterativeGCN
 import wandb
 wandb.login()
 
+'''
+This script is to sweep for the best set of hyperparameters for iterativeGCN,
+given Cora dataset with a fixed amount of noise.
+'''
+
 def run_exp(config=None):
     wandb.init(job_type="Sweep", 
                project="IterativeMethods", 
                config=config, 
-               notes="Fix noise, sweep for the best hyperparams")
+               notes="Fix noise, sweep for the best hyperparams",
+               tags=["iterativeGCN"])
     config = wandb.config
     train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
+    wandb.log({
+        "train_schedule": train_schedule
+    })
     data, num_features, num_classes = make_Planetoid_data(config)
     model = build_iterativeGCN(config, num_features, num_classes, train_schedule)
     exp_per_model(model, data, config)
@@ -39,13 +48,13 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [6, 7, 8, 9]
+        'values': [2, 3, 4, 5, 6, 7, 8, 9]
     },
     'learning_rate': {
         'values': np.arange(0.0005, 0.02, 0.0005).tolist()
     },
     'smooth_fac': {
-        'values': np.arange(0.7, 1, 0.025).tolist()
+        'values': np.arange(0.3, 1, 0.05).tolist()
     },
     'hid_dim': {
         'value': 32
@@ -69,6 +78,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=50)
+wandb.agent(sweep_id, run_exp, count=100)
     
         

@@ -11,11 +11,17 @@ from models import GCN
 import wandb
 wandb.login()
 
+'''
+This script is for sweeping for a set of hyperparameters for the usual GCN,
+on the Cora dataset with a fixed amount of noise.
+'''
+
 def run_exp(config=None):
     wandb.init(job_type="Sweep", 
                project="IterativeMethods", 
                config=config, 
-               notes="Sweep for the usual GCN")
+               notes="Sweep for the usual GCN",
+               tags=["usualGCN"])
     config = wandb.config
     data, num_features, num_classes = make_Planetoid_data(config)
     model = GCN(
@@ -74,6 +80,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=50)
+wandb.agent(sweep_id, run_exp, count=100)
     
         

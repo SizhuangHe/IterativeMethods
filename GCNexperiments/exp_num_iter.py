@@ -8,6 +8,12 @@ from models import iterativeGCN
 import wandb
 wandb.login()
 
+'''
+In this script, we train one iterativeGCN with a fixed schedule and do inference with another fixed schedule.
+We take the output at each step of the iteration and pass it to the decoder to see how the performance change
+over iterations.
+'''
+
 def run_exp(config=None, full_schedule=None, schedule_name=None):
     wandb.init(config=config, 
                project="IterativeMethods", 

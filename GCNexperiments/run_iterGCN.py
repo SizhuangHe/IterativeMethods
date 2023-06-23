@@ -8,6 +8,10 @@ from models import iterativeGCN, GCN
 import wandb
 wandb.login()
 
+'''
+This script is to experiment on the performance of iterative GCN with given hyperparameters, after sweep.
+'''
+
 def run_exp(hyper=None, train_schedule=None):
     wandb.init(config=hyper, job_type="iter_layer_vs_perfm", project="IterativeMethods", tags=["iterativeGCN"])
     config = wandb.config
