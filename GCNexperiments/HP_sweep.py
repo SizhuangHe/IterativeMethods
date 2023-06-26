@@ -51,7 +51,7 @@ parameters_dict = {
         'values': [2, 3, 4, 5, 6, 7, 8, 9]
     },
     'learning_rate': {
-        'values': np.arange(0.0005, 0.02, 0.0005).tolist()
+        'values': np.arange(0.003, 0.02, 0.0005).tolist()
     },
     'smooth_fac': {
         'values': np.arange(0.3, 1, 0.05).tolist()
@@ -72,7 +72,7 @@ parameters_dict = {
         'value': 'Cora'
     },
     'noise_percent': {
-        'value': 0.7
+        'value': 0.1
     }
 }
 sweep_config['parameters'] = parameters_dict
