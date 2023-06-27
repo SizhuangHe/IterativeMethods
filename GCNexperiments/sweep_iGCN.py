@@ -54,7 +54,7 @@ parameters_dict = {
         'values': np.arange(0.003, 0.02, 0.0005).tolist()
     },
     'smooth_fac': {
-        'values': np.arange(0.3, 0.9, 0.05).tolist()
+        'values': np.arange(0.3, 0.8, 0.05).tolist()
     },
     'hid_dim': {
         'value': 32
