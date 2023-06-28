@@ -9,6 +9,7 @@ from utils import build_iterativeGCN, make_Planetoid_data, exp_per_model, make_u
 from models import iterativeGCN_variant
 
 import wandb
+from wandb import AlertLevel
 wandb.login()
 
 '''
@@ -36,6 +37,12 @@ def run_exp(config=None):
                                  xavier_init=True
                                  )
     exp_per_model(model, data, config)
+    wandb.alert(
+        # send me an email when experiment ended
+        title = "End of sweep", 
+        text = "Sweep ends!",
+        level=AlertLevel.INFO
+)
     wandb.finish()
 
 sweep_config = {
