@@ -74,7 +74,7 @@ parameters_dict = {
         'value': 'Cora'
     },
     'noise_percent': {
-        'value': 0.5
+        'value': 0.3
     }
 }
 sweep_config['parameters'] = parameters_dict
