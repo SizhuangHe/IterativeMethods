@@ -4,7 +4,7 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 from utils import make_Planetoid_data, exp_per_model, make_uniform_schedule, build_iterativeGCN
-from models import iterativeGCN, GCN
+from models import iterativeGCN, GCN, iterativeGCN_variant
 import wandb
 wandb.login()
 
@@ -45,6 +45,27 @@ def run_exp(config_iter=None, config_usual=None):
     exp_per_model(gcn, data, config)
     del gcn
     wandb.finish()
+
+    wandb.init(config=config_iter_var,
+               job_type="model_compare",
+               project="IterativeMethods",
+               notes="Compare iterativeGCN and usual GCN on the same noisy dataset",
+               tags=["iterativeGCNvariant"]
+    )
+    config = wandb.config
+    train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
+    gcn_var = iterativeGCN_variant(input_dim=num_features,
+                                 output_dim=num_classes,
+                                 hidden_dim=config.hid_dim,
+                                 train_schedule=train_schedule,
+                                 dropout=config.dropout,
+                                 xavier_init=True
+                                 )
+    exp_per_model(gcn_var, data, config)
+    del gcn_var
+    wandb.finish()
+
+
     
 
 
@@ -69,6 +90,18 @@ config_usual = {
     'smooth_fac': 0.45,
     'dropout': 0.5,
     'learning_rate': 0.012,
+    'weight_decay': 5e-4
+} 
+
+config_iter_var = {
+    'num_epochs': 200,
+    'dataset_name': "Cora",
+    'noise_percent': 0.5,
+    'hid_dim': 32,
+    'num_iter_layers': 9,
+    'smooth_fac': 0.7,
+    'dropout': 0.5,
+    'learning_rate': 0.004,
     'weight_decay': 5e-4
 } 
 
