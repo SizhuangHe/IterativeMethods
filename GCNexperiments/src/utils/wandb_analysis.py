@@ -67,8 +67,8 @@ def get_clean_sweep_runs(sweep_id, model_name):
         run_dict = {}
         run_dict.update(clean_keys(run.summary._json_dict))
         run_dict.update(clean_keys(run.config))
-        run_dict.update({"run_name": run.name})
-        run_dict.update({"model_name": model_name})
+        run_dict.update({"run name": run.name})
+        run_dict.update({"model name": model_name})
         run_list.append(run_dict)
 
     
