@@ -4,7 +4,24 @@ import wandb
 import numpy as np
 import seaborn as sns
 
-
+def get_sweep_info(sweep_id_list):
+    api = wandb.Api()
+    dict_list = []
+    for sweep_id in sweep_id_list:
+        sweep_path = "sizhuang/IterativeMethods/" + sweep_id
+        sweep = api.sweep(sweep_path)
+        sweep_runs = sweep.runs
+        num_runs = len(sweep_runs)
+        sweep_dict = {}
+        for k,v in sweep.config.copy()["parameters"].items():
+            for _,vv in v.items():
+                sweep_dict.update({k: vv})   
+        sweep_dict.update({"Number of runs": num_runs})  
+        sweep_dict.update({"Sweep id": sweep_id})
+        dict_list.append(sweep_dict) 
+    api.flush()
+    df = pd.DataFrame(dict_list)
+    return df
 
 def get_raw_sweep_runs(sweep_id):
     '''
@@ -36,7 +53,7 @@ def clean_keys(dict):
             dic.pop(k)
     return dic
 
-def get_clean_sweep_runs(sweep_id):
+def get_clean_sweep_runs(sweep_id, model_name):
     '''
     Given sweep_id, this function returns a pandas.DataFrame that summarizes information of each runs of this sweep
     '''
@@ -50,7 +67,8 @@ def get_clean_sweep_runs(sweep_id):
         run_dict = {}
         run_dict.update(clean_keys(run.summary._json_dict))
         run_dict.update(clean_keys(run.config))
-        run_dict.update({"name": run.name})
+        run_dict.update({"run_name": run.name})
+        run_dict.update({"model_name": model_name})
         run_list.append(run_dict)
 
     
