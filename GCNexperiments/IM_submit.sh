@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --tasks-per-node=16
 #SBATCH --mem-per-cpu=1000m 
-#SBATCH --time=4:00:00
+#SBATCH --time=5:00:00
 #SBATCH --account=lsa1
 #SBATCH --partition=standard
 #SBATCH --output=/home/%u/%x-%j.log

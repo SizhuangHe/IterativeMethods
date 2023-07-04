@@ -33,10 +33,11 @@ def run_exp(hyper=None):
                                     dropout=config.dropout)
     exp_per_model(model, data, config)
     smooth_fac = model.train_schedule.detach().numpy().copy()
-    print('learned smoothing factors: ', smooth_fac)
     wandb.log({
         'learned smoothing factors': smooth_fac
     })
+    print('learned smoothing factors: ', smooth_fac)
+    
     wandb.finish()
 
         

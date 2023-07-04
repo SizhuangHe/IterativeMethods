@@ -26,8 +26,8 @@ def run_exp(config=None):
     wandb.init(job_type="Sweep", 
                project="IterativeMethods", 
                config=config, 
-               notes="et_iGCN",
-               tags=["et_iGCN"])
+               notes="la_iGCN",
+               tags=["la_iGCN"])
     config = wandb.config
     data, num_features, num_classes = make_Planetoid_data(config)
     model = learnable_adaptive_iGCN(input_dim=num_features,
@@ -36,6 +36,10 @@ def run_exp(config=None):
                                     num_iterations=config.num_iter_layers,
                                     dropout=config.dropout)
     exp_per_model(model, data, config)
+    smooth_fac = model.train_schedule.detach().numpy().copy()
+    wandb.log({
+        'learned smoothing factors': smooth_fac
+    })
     wandb.finish()
     
         
@@ -57,10 +61,7 @@ parameters_dict = {
         'values': [2, 3, 4, 5, 6, 7, 8, 9]
     },
     'learning_rate': {
-        'values': np.arange(0.003, 0.02, 0.0005).tolist()
-    },
-    'smooth_fac': {
-        'values': np.arange(0.1, 0.95, 0.05).tolist()
+        'value': 0.004
     },
     'hid_dim': {
         'value': 32
@@ -84,6 +85,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=200)
+wandb.agent(sweep_id, run_exp, count=400)
     
         
