@@ -33,7 +33,7 @@ def run_exp(config=None):
     wandb.log({
         "train_schedule": train_schedule
     })
-    data, num_features, num_classes = make_Planetoid_data(config)
+    data, num_features, num_classes = make_Planetoid_data(config, seed=2147483647)
     model = explicit_time_iGCN(input_dim=num_features,
                                     output_dim=num_classes,
                                     hidden_dim=config.hid_dim,

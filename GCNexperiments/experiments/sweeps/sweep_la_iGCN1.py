@@ -29,7 +29,7 @@ def run_exp(config=None):
                notes="la_iGCN",
                tags=["la_iGCN"])
     config = wandb.config
-    data, num_features, num_classes = make_Planetoid_data(config)
+    data, num_features, num_classes = make_Planetoid_data(config, seed=2147483647)
     model = learnable_adaptive_iGCN(input_dim=num_features,
                                     output_dim=num_classes,
                                     hidden_dim=config.hid_dim,

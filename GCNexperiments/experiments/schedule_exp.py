@@ -1,160 +1,118 @@
 from __future__ import division
 from __future__ import print_function
-import time
 import numpy as np
 import copy
 import torch
-import logging
-import matplotlib.pyplot as plt
-from torch import nn
 import torch.nn.functional as F
-import torch.optim as optim
-from torch_geometric.datasets import Planetoid
-from torch_geometric.transforms import NormalizeFeatures
 
 import sys
 from pathlib import Path
 BASE_PATH = Path(__file__).parent.parent.absolute()
 sys.path.insert(1, str(BASE_PATH))
 
-from src.utils.utils import test
-from src.models.GCN import GCN
+from src.utils.utils import make_Planetoid_data, make_uniform_schedule, exp_per_model, test
 from src.models.iterativeModels import iterativeGCN
+
+import wandb
+wandb.login()
 
 '''
 This script is not up to date.
 '''
-
-
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.DEBUG)
-formatter = logging.Formatter("%(asctime)s: %(message)s")
-file_handler = logging.FileHandler("schedule_exp.log")
-file_handler.setFormatter(formatter)
-logger.addHandler(file_handler)
 
 sigmoid = F.sigmoid(torch.Tensor(np.linspace(1, 9, 30)))
 uniform = np.full(30, 0.97)
 linear = np.linspace(0.9, 1, 30)
 tanh = F.tanh(torch.Tensor(np.linspace(1, 5, 30)))
 
-lr = 0.0075
-weight_decay = 5e-4
-num_runs = 100
-smooth_fac = 0.7
-hid_dim = 32
-num_iter = 2
-
-dataset = Planetoid(root='data/Planetoid', name='Cora', transform=NormalizeFeatures())
-data = dataset[0]
-
-ACC_orig = []
-ACC_sigm = []
-ACC_unif = []
-ACC_line = []
-ACC_tanh = []
-
-for i in range(num_runs):
-    start_t = time.time()
-    model_origin = iterativeGCN(input_dim=dataset.num_features,
-                                output_dim=dataset.num_classes,
-                                hidden_dim=hid_dim,
-                                num_train_iter=num_iter,
-                                smooth_fac=smooth_fac,
-                                schedule=None,
-                                dropout=0.5,
-                                xavier_init=True
-                                )
-    loss_test, acc_test, training_time = run_experiment(model=model_origin,
-                                                        data=data,
-                                                        lr=lr,
-                                                        weight_decay=weight_decay,
-                                                        model_name="lala",
-                                                        run=1,
-                                                        num_epochs=200
-                                                        ) 
-    ACC_orig.append(acc_test)
+def run_exp(hyper=None):
+    wandb.init(config=hyper, 
+               job_type="schedule_exp", 
+               project="IterativeMethods", 
+               tags=["iterativeGCN"])
+    config = wandb.config
+    data, num_features, num_classes = make_Planetoid_data(config, seed=2147483647)
+    train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
+    model_origin = iterativeGCN(input_dim=num_features,
+                                    output_dim=num_classes,
+                                    hidden_dim=config.hid_dim,
+                                    train_schedule=train_schedule,
+                                    dropout=config.dropout,
+                                    xavier_init=True
+                                    )
+    exp_per_model(model_origin, data, config)
     orig_state_dict = copy.deepcopy(model_origin.state_dict())
-    del model_origin
     
-    model_sigm = iterativeGCN(input_dim=dataset.num_features,
-                                output_dim=dataset.num_classes,
-                                hidden_dim=hid_dim,
-                                num_train_iter=num_iter,
-                                smooth_fac=smooth_fac,
-                                schedule=sigmoid,
-                                dropout=0.5,
-                                xavier_init=True
-                                )
+    model_sigm = iterativeGCN(input_dim=num_features,
+                            output_dim=num_classes,
+                            hidden_dim=config.hid_dim,
+                            train_schedule=train_schedule,
+                            eval_schedule=sigmoid,
+                            dropout=0.5,
+                            )
     model_sigm.load_state_dict(orig_state_dict)
     loss_test, acc_test = test(model=model_sigm, data=data)
-    ACC_sigm.append(acc_test)
-    del model_sigm
+    wandb.log({
+        "sigmoid_acc": acc_test,
+        "sigmoid_loss": loss_test
+    })
 
-    model_unif = iterativeGCN(input_dim=dataset.num_features,
-                                output_dim=dataset.num_classes,
-                                hidden_dim=hid_dim,
-                                num_train_iter=num_iter,
-                                smooth_fac=smooth_fac,
-                                schedule=uniform,
-                                dropout=0.5,
-                                xavier_init=True
-                                )
+    model_unif = iterativeGCN(input_dim=num_features,
+                            output_dim=num_classes,
+                            hidden_dim=config.hid_dim,
+                            train_schedule=train_schedule,
+                            eval_schedule=uniform,
+                            dropout=0.5,
+                            xavier_init=True
+                            )
     model_unif.load_state_dict(orig_state_dict)
     loss_test, acc_test = test(model=model_unif, data=data)
-    ACC_unif.append(acc_test)
-    del model_unif
+    wandb.log({
+        "unif_acc": acc_test,
+        "unif_loss": loss_test
+    })
 
-    model_line = iterativeGCN(input_dim=dataset.num_features,
-                                output_dim=dataset.num_classes,
-                                hidden_dim=hid_dim,
-                                num_train_iter=num_iter,
-                                smooth_fac=smooth_fac,
-                                schedule=linear,
-                                dropout=0.5,
-                                xavier_init=True
-                                )
+    model_line = iterativeGCN(input_dim=num_features,
+                            output_dim=num_classes,
+                            hidden_dim=config.hid_dim,
+                            train_schedule=train_schedule,
+                            eval_schedule=linear,
+                            dropout=0.5,
+                            xavier_init=True
+                            )
     model_line.load_state_dict(orig_state_dict)
     loss_test, acc_test = test(model=model_line, data=data)
-    ACC_line.append(acc_test)
-    del model_line
+    wandb.log({
+        "line_acc": acc_test,
+        "line_loss": loss_test
+    })
 
-    model_tanh = iterativeGCN(input_dim=dataset.num_features,
-                                output_dim=dataset.num_classes,
-                                hidden_dim=hid_dim,
-                                num_train_iter=num_iter,
-                                smooth_fac=smooth_fac,
-                                schedule=tanh,
-                                dropout=0.5,
-                                xavier_init=True
-                                )
+    model_tanh = iterativeGCN(input_dim=num_features,
+                            output_dim=num_classes,
+                            hidden_dim=config.hid_dim,
+                            train_schedule=train_schedule,
+                            eval_schedule=tanh,
+                            dropout=0.5,
+                            xavier_init=True
+                            )
     model_tanh.load_state_dict(orig_state_dict)
     loss_test, acc_test = test(model=model_tanh, data=data)
-    ACC_tanh.append(acc_test)
-    del model_tanh
-    
-    end_t = time.time()
-    print("Run {:03d}/{:03d}, accuracy: no schedule {:.4}, sigmoid {:.4}, uniform {:.4}, linear {:.4}, tanh {:.4}, time elapsed {:.4}".format(i+1, num_runs, ACC_orig[-1], ACC_sigm[-1], ACC_unif[-1], ACC_line[-1], ACC_tanh[-1], end_t-start_t))
+    wandb.log({
+        "tanh_acc": acc_test,
+        "tanh_loss": loss_test
+    })
 
-fig = plt.figure(figsize =(10, 7))
-plt.violinplot([ACC_orig, ACC_sigm, ACC_unif, ACC_line, ACC_tanh], showmedians=True, showextrema=True)
-fig.savefig("schedule_exp")
+config = {
+    'num_epochs': 200,
+    'dataset_name': "Cora",
+    'noise_percent': 0.5,
+    'hid_dim': 32,
+    'num_iter_layers': 4,
+    'smooth_fac': 0.6,
+    'dropout': 0.5,
+    'learning_rate': 0.005,
+    'weight_decay': 4e-4
+} 
 
-mean_orig = np.mean(ACC_orig)
-mean_sigm = np.mean(ACC_sigm)
-mean_unif = np.mean(ACC_unif)
-mean_line = np.mean(ACC_line)
-mean_tanh = np.mean(ACC_tanh)
-std_orig = np.std(ACC_orig)
-std_sigm = np.std(ACC_sigm)
-std_unif = np.std(ACC_unif)
-std_line = np.std(ACC_line)
-std_tanh = np.std(ACC_tanh)
 
-logger.info("--> Experiment: lr={:.4}, weight_decay={:.4}, smooth_fac={:.4}, hidden_dim={:02d}, num_iteration={}".format(lr, weight_decay, smooth_fac, hid_dim, num_iter))
-logger.info("No schedule: {}".format(np.full(num_iter, smooth_fac)))
-logger.info("Sigmoid schedule: {}".format(sigmoid))
-logger.info("Uniform schedule: {}".format(uniform))
-logger.info("Linear schedule: {}".format(linear))
-logger.info("Tanh schedule: {}".format(tanh))
-logger.info("Result:\n no schedule: {:.4} +/- {:.4},\n sigmoid: {:.4} +/- {:.4},\n uniform: {:.4} +/- {:.4},\n linear: {:.4} +/- {:.4},\n tanh: {:.4} +/- {:.4}".format(mean_orig, std_orig, mean_sigm, std_sigm, mean_unif, std_unif, mean_line, std_line, mean_tanh, std_tanh))
+run_exp(config)

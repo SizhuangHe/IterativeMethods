@@ -29,7 +29,7 @@ def run_exp(config=None):
                notes="Sweep for the usual GCN, from greatlakes",
                tags=["usualGCN"])
     config = wandb.config
-    data, num_features, num_classes = make_Planetoid_data(config)
+    data, num_features, num_classes = make_Planetoid_data(config, seed=2147483647)
     model = GCN(
         input_dim=num_features,
         output_dim=num_classes,
@@ -86,6 +86,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=200)
+wandb.agent(sweep_id, run_exp, count=400)
     
         

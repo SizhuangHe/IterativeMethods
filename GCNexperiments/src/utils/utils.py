@@ -21,14 +21,19 @@ def accuracy(guess, truth):
 def make_uniform_schedule(length, smooth_fac):
     return np.full(length, smooth_fac)
 
-def add_noise(data, percent=0):
+def add_noise(data, percent=0, seed=None):
     #add random 1's to data
     if percent > 0 and percent <= 1:
         len = np.prod(list(data.x.shape))
         ones = math.floor(len * percent)
         zeros = len - ones
         noise = torch.cat((torch.zeros(zeros), torch.ones(ones)))
-        noise = noise[torch.randperm(noise.size(0))]
+        if seed is not None:
+            rng = torch.Generator()
+            rng.manual_seed(seed)
+            noise = noise[torch.randperm(noise.size(0), generator=rng)]
+        else:
+            noise = noise[torch.randperm(noise.size(0))]
         noise = torch.reshape(noise, data.x.shape)
         data.x += noise
     return data
@@ -81,12 +86,12 @@ def test(model, data):
     
     return loss, acc
 
-def make_Planetoid_data(config):
+def make_Planetoid_data(config, seed=None):
     dataset = Planetoid(root='data/Planetoid', 
                         name=config['dataset_name'], 
                         transform=NormalizeFeatures())
     data = dataset[0]
-    data = add_noise(data, percent=config['noise_percent'])
+    data = add_noise(data, percent=config['noise_percent'], seed=seed)
     num_features = dataset.num_features
     num_classes = dataset.num_classes
     return data, num_features, num_classes

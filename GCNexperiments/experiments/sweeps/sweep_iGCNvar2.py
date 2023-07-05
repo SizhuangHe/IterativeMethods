@@ -34,7 +34,7 @@ def run_exp(config=None):
     wandb.log({
         "train_schedule": train_schedule
     })
-    data, num_features, num_classes = make_Planetoid_data(config)
+    data, num_features, num_classes = make_Planetoid_data(config, seed=2147483647)
     model = iterativeGCN_variant(input_dim=num_features,
                                  output_dim=num_classes,
                                  hidden_dim=config.hid_dim,
@@ -87,6 +87,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=200)
+wandb.agent(sweep_id, run_exp, count=400)
     
         
