@@ -1,6 +1,8 @@
+import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
+from src.utils.metrics import MAD
 
 class GCN(nn.Module):
     '''
@@ -23,9 +25,14 @@ class GCN(nn.Module):
     def forward(self, x, edge_index):
         x = F.relu(self.first_gc(x, edge_index))
         x = F.dropout(x, self.dropout, training=self.training)
+
+
         if self.gcs is not None:
             for layer in self.gcs:
                 x = F.relu(layer(x, edge_index))
                 x = F.dropout(x, self.dropout, training=self.training)
         x = self.final_gc(x, edge_index)
+
+        print("Final MAD: ")
+        print(MAD(x.detach()))
         return F.log_softmax(x, dim=1)

@@ -3,6 +3,7 @@ import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
+from src.utils.metrics import MAD
 
 class iterativeGCN(nn.Module):
     def __init__(self, 
@@ -53,6 +54,9 @@ class iterativeGCN(nn.Module):
             new_x = F.dropout(x, self.dropout, training=self.training)
             x = self._next_x(old_x, new_x, smooth_fac) 
         x = self.decoder(x)
+        
+        print("Final MAD: ")
+        print(MAD(x.detach()))
         return F.log_softmax(x, dim=1)
 
 class explicit_time_iGCN(nn.Module):
@@ -158,6 +162,8 @@ class learnable_adaptive_iGCN(nn.Module):
             schedule = self.train_schedule
         else:
             schedule = self.eval_schedule
+        
+        print("Schedule: ", schedule)
         
         x = F.relu(self.encoder(x))
         x = F.dropout(x, self.dropout, training=self.training)

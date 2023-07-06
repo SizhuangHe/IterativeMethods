@@ -89,7 +89,8 @@ def test(model, data):
 def make_Planetoid_data(config, seed=None):
     dataset = Planetoid(root='data/Planetoid', 
                         name=config['dataset_name'], 
-                        transform=NormalizeFeatures())
+                        transform=NormalizeFeatures()
+                        )
     data = dataset[0]
     data = add_noise(data, percent=config['noise_percent'], seed=seed)
     num_features = dataset.num_features

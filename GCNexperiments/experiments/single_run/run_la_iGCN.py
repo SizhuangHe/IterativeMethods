@@ -42,11 +42,11 @@ def run_exp(hyper=None):
 
         
 config = {
-    'num_epochs': 200,
+    'num_epochs': 500,
     'dataset_name': "Cora",
-    'noise_percent': 0,
+    'noise_percent': 0.4,
     'hid_dim': 32,
-    'num_iter_layers': 2,
+    'num_iter_layers': 20,
     'dropout': 0.5,
     'learning_rate': 0.005,
     'weight_decay': 4e-4

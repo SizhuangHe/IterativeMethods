@@ -18,11 +18,11 @@ This script is to experiment on the performance of GCN variant with a given set 
 '''
 
 def run_exp(config=None):
-    wandb.init(job_type="run_iGCNv", 
+    wandb.init(job_type="run_GCN", 
                project="IterativeMethods", 
                config=config, 
-               notes="variant of iGCN experiments",
-               tags=["iterativeGCNvariant"])
+               notes="usualGCN",
+               tags=["usualGCN"])
     config = wandb.config
     data, num_features, num_classes = make_Planetoid_data(config)
     model = GCN(input_dim=num_features,
