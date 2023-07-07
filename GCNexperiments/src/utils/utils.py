@@ -44,8 +44,8 @@ def count_parameters(model):
 def train_epoch(model, data, optimizer):
     model.train()
     output = model(data.x, data.edge_index)
-    loss = F.nll_loss(output[data.train_mask], data.y[data.train_mask])
-    pred = output[data.train_mask].argmax(dim=1)
+    loss = F.cross_entropy(output[data.train_mask], data.y[data.train_mask])
+    pred = F.log_softmax(output[data.train_mask], dim=1).argmax(dim=1)
     acc = accuracy(pred, data.y[data.train_mask])
     
     optimizer.zero_grad()
@@ -56,8 +56,8 @@ def train_epoch(model, data, optimizer):
 def validate_epoch(model, data):
     model.eval()
     output = model(data.x, data.edge_index)
-    loss = F.nll_loss(output[data.val_mask], data.y[data.val_mask])
-    pred = output[data.val_mask].argmax(dim=1)
+    loss = F.cross_entropy(output[data.val_mask], data.y[data.val_mask])
+    pred = F.log_softmax(output[data.val_mask], dim=1).argmax(dim=1)
     acc = accuracy(pred, data.y[data.val_mask])
     return loss, acc
 
@@ -80,8 +80,8 @@ def train(model, data, config):
 def test(model, data):
     model.eval()
     output = model(data.x, data.edge_index)
-    loss = F.nll_loss(output[data.test_mask], data.y[data.test_mask])
-    pred = output[data.test_mask].argmax(dim=1)
+    loss = F.cross_entropy(output[data.test_mask], data.y[data.test_mask])
+    pred = F.log_softmax(output[data.test_mask], dim=1).argmax(dim=1)
     acc = accuracy(pred, data.y[data.test_mask])
     
     return loss, acc
@@ -89,7 +89,8 @@ def test(model, data):
 def make_Planetoid_data(config, seed=None):
     dataset = Planetoid(root='data/Planetoid', 
                         name=config['dataset_name'], 
-                        transform=NormalizeFeatures()
+                        transform=NormalizeFeatures(),
+                        split='random'
                         )
     data = dataset[0]
     data = add_noise(data, percent=config['noise_percent'], seed=seed)

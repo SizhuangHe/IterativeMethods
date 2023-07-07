@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch_geometric.nn import GCNConv
 from src.utils.metrics import MAD
+import wandb
 
 class GCN(nn.Module):
     '''
@@ -32,7 +33,5 @@ class GCN(nn.Module):
                 x = F.relu(layer(x, edge_index))
                 x = F.dropout(x, self.dropout, training=self.training)
         x = self.final_gc(x, edge_index)
-
-        print("Final MAD: ")
-        print(MAD(x.detach()))
-        return F.log_softmax(x, dim=1)
+        
+        return x

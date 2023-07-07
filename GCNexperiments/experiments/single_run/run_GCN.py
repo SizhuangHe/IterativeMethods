@@ -6,9 +6,10 @@ import sys
 from pathlib import Path
 BASE_PATH = Path(__file__).parent.parent.parent.absolute()
 sys.path.insert(1, str(BASE_PATH))
-
+import torch
 from src.utils.utils import make_Planetoid_data, exp_per_model
 from src.models.GCN import GCN
+from src.utils.metrics import MAD
 
 import wandb
 wandb.login()
@@ -32,15 +33,25 @@ def run_exp(config=None):
                                  dropout=config.dropout,
                                  )
     exp_per_model(model, data, config)
+
+    out = model(data.x, data.edge_index)
+    torch.set_printoptions(profile="full")
+    print(out)
+    mad = MAD(out.detach())
+    wandb.log({
+        "MAD": mad
+    })
+    print("MAD: ", mad)
+
     wandb.finish()
     
 
 config = {
     'num_epochs': 200,
     'dataset_name': "Cora",
-    'noise_percent': 0.7,
+    'noise_percent': 0,
     'hid_dim': 32,
-    'num_iter_layers': 2,
+    'num_iter_layers': 9,
     'smooth_fac': 0.7,
     'dropout': 0.5,
     'learning_rate': 0.01,

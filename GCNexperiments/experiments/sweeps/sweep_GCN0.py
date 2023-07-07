@@ -10,9 +10,10 @@ import sys
 from pathlib import Path
 BASE_PATH = Path(__file__).parent.parent.parent.absolute()
 sys.path.insert(1, str(BASE_PATH))
-
+import torch
 from src.utils.utils import make_Planetoid_data, exp_per_model, make_uniform_schedule
 from src.models.GCN import GCN
+from src.utils.metrics import MAD
 
 import wandb
 wandb.login()
@@ -38,6 +39,16 @@ def run_exp(config=None):
         dropout=config.dropout
     )
     exp_per_model(model, data, config)
+
+    out = model(data.x, data.edge_index)
+    torch.set_printoptions(profile="full")
+    print(out)
+    mad = MAD(out.detach())
+    wandb.log({
+        "MAD": mad
+    })
+    print("MAD: ", mad)
+
     wandb.finish()
     
         
@@ -56,7 +67,7 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [2,3,4,5,6,7,8,9]
+        'value': 6
     },
     'learning_rate': {
         'value': 0.01
@@ -89,6 +100,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=400)
+wandb.agent(sweep_id, run_exp, count=50)
     
         
