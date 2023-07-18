@@ -3,7 +3,7 @@ import torch
 import math
 import torch.optim as optim
 import torch.nn.functional as F
-from torch_geometric.datasets import Planetoid
+from torch_geometric.datasets import Planetoid, Amazon
 from torch_geometric.transforms import NormalizeFeatures
 from src.models.iterativeModels import iterativeGCN
 
@@ -90,7 +90,6 @@ def make_Planetoid_data(config, seed=None):
     dataset = Planetoid(root='data/Planetoid', 
                         name=config['dataset_name'], 
                         transform=NormalizeFeatures(),
-                        split='random'
                         )
     data = dataset[0]
     data = add_noise(data, percent=config['noise_percent'], seed=seed)
@@ -98,6 +97,15 @@ def make_Planetoid_data(config, seed=None):
     num_classes = dataset.num_classes
     return data, num_features, num_classes
 
+def make_Amazon_data(config, seed=None):
+    dataset = Amazon(root='data/Amazon',
+                     name=config['dataset_name'],
+                     transform=NormalizeFeatures())
+    data = dataset[0]
+    # data = add_noise(data, percent=config['noise_percent'], seed=seed)
+    num_features = dataset.num_features
+    num_classes = dataset.num_classes
+    return data, num_features, num_classes
 def exp_per_model(model, data, config):
     num_params = count_parameters(model)
     wandb.log({ 

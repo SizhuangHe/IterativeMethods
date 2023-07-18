@@ -61,10 +61,10 @@ parameters_dict = {
         'values': [2, 3, 4, 5, 6, 7, 8, 9]
     },
     'learning_rate': {
-        'value': 0.005
+        'values': np.arange(0.003, 0.02, 0.0005).tolist()
     },
     'smooth_fac': {
-        'value': 0.7
+        'values': np.arange(0.1, 0.95, 0.05).tolist()
     },
     'hid_dim': {
         'value': 32

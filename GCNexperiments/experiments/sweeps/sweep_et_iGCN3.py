@@ -61,7 +61,7 @@ parameters_dict = {
         'values': [2, 3, 4, 5, 6, 7, 8, 9]
     },
     'learning_rate': {
-        'value': 0.003
+        'value': 0.0045
     },
     'smooth_fac': {
         'value': 0.6

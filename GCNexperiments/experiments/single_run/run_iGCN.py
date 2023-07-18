@@ -41,8 +41,8 @@ def run_exp(hyper=None):
         
 config = {
     'num_epochs': 200,
-    'dataset_name': "Cora",
-    'noise_percent': 0.5,
+    'dataset_name': "PubMed",
+    'noise_percent': 0,
     'hid_dim': 32,
     'num_iter_layers': 4,
     'smooth_fac': 0.6,

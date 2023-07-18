@@ -26,7 +26,7 @@ def run_exp(config=None):
     wandb.init(job_type="Sweep", 
                project="IterativeMethods", 
                config=config, 
-               notes="et_iGCN",
+               notes="et_iGCN, debug run",
                tags=["et_iGCN"])
     config = wandb.config
     train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
@@ -61,10 +61,10 @@ parameters_dict = {
         'values': [2, 3, 4, 5, 6, 7, 8, 9]
     },
     'learning_rate': {
-        'value': 0.004
+        'value': 0.0055
     },
     'smooth_fac': {
-        'value': 0.8
+        'value': 0.55
     },
     'hid_dim': {
         'value': 32

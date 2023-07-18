@@ -40,7 +40,7 @@ config = {
     'dataset_name': "Cora",
     'noise_percent': 0,
     'hid_dim': 32,
-    'num_iter_layers': 4,
+    'num_iter_layers': 5,
     'smooth_fac': 0.6,
     'dropout': 0.5,
     'learning_rate': 0.005,
