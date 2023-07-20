@@ -3,42 +3,49 @@ from __future__ import print_function
 import numpy as np
 import torch
 
-
 import sys
 from pathlib import Path
 BASE_PATH = Path(__file__).parent.parent.parent.absolute()
 sys.path.insert(1, str(BASE_PATH))
-
-from src.utils.utils import build_iterativeGCN, make_Planetoid_data, exp_per_model, make_uniform_schedule
+import torch
+from src.utils.utils import make_Planetoid_data, exp_per_model, make_uniform_schedule
+from src.models.iterativeModels import iterativeGAT
 from src.utils.metrics import MAD
 
 import wandb
 wandb.login()
 
 '''
-This script is to sweep for the best set of hyperparameters for iterativeGCN,
-given Cora dataset with a fixed amount of noise.
+This script is for sweeping for a set of hyperparameters for the usual GCN,
+on the Cora dataset with a fixed amount of noise.
 '''
 
 def run_exp(config=None):
     wandb.init(job_type="Sweep", 
                project="IterativeMethods", 
                config=config, 
-               notes="Fix noise, sweep for the best hyperparams",
-               tags=["iterativeGCN"])
+               notes="Sweep for the iGAT, from greatlakes",
+               tags=["iterativeGAT"])
     config = wandb.config
-    train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
-    wandb.log({
-        "train_schedule": train_schedule
-    })
     data, num_features, num_classes = make_Planetoid_data(config, seed=2147483647)
-    model = build_iterativeGCN(config, num_features, num_classes, train_schedule)
+    train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
+    model =iterativeGAT(input_dim=num_features,
+                output_dim=num_classes,
+                hidden_dim=config.hid_dim,
+                train_schedule=train_schedule,
+                heads=8,
+                dropout=config.dropout,
+                attn_dropout_rate=config.dropout,
+                xavier_init=True
+    )
     exp_per_model(model, data, config)
+
     out = model(data.x, data.edge_index)
     mad = MAD(out.detach())
     wandb.log({
         "MAD": mad
     })
+
     wandb.finish()
     
         
@@ -60,28 +67,31 @@ parameters_dict = {
         'values': [2,3,4,5,6,7,8,9]
     },
     'learning_rate': {
-        'values': np.arange(0.001, 0.02, 0.0005).tolist()
+        'values': np.arange(0.003, 0.02, 0.0005).tolist()
     },
     'smooth_fac': {
         'values': np.arange(0.3, 0.8, 0.05).tolist()
     },
     'hid_dim': {
-        'value': 32
+        'value': 64
     },
     'weight_decay': {
-        'value': 4e-4
+        'value': 5e-4
     },
     'num_epochs': {
         'value': 200
     },
     'dropout': {
-        'value': 0.5
+        'value': 0.6
     },
     'dataset_name': {
         'value': 'PubMed'
     },
     'noise_percent': {
-        'value': 0
+        'value': 0.7
+    },
+    'noise_seed':{
+        'value': 2147483647
     }
 }
 sweep_config['parameters'] = parameters_dict

@@ -1,8 +1,10 @@
 from __future__ import division
 from __future__ import print_function
 import numpy as np
-import torch
-
+import torch.optim as optim
+import torch.nn.functional as F
+from torch_geometric.datasets import Planetoid
+from torch_geometric.transforms import NormalizeFeatures
 
 import sys
 from pathlib import Path
@@ -10,7 +12,7 @@ BASE_PATH = Path(__file__).parent.parent.parent.absolute()
 sys.path.insert(1, str(BASE_PATH))
 
 from src.utils.utils import build_iterativeGCN, make_Planetoid_data, exp_per_model, make_uniform_schedule
-from src.utils.metrics import MAD
+from src.models.variantModels import iterativeGCN_variant
 
 import wandb
 wandb.login()
@@ -24,26 +26,24 @@ def run_exp(config=None):
     wandb.init(job_type="Sweep", 
                project="IterativeMethods", 
                config=config, 
-               notes="Fix noise, sweep for the best hyperparams",
-               tags=["iterativeGCN"])
+               notes="variant of iGCN experiments, from greatlakes",
+               tags=["iterativeGCNvariant"])
     config = wandb.config
     train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
     wandb.log({
         "train_schedule": train_schedule
     })
     data, num_features, num_classes = make_Planetoid_data(config, seed=2147483647)
-    model = build_iterativeGCN(config, num_features, num_classes, train_schedule)
+    model = iterativeGCN_variant(input_dim=num_features,
+                                 output_dim=num_classes,
+                                 hidden_dim=config.hid_dim,
+                                 train_schedule=train_schedule,
+                                 dropout=config.dropout,
+                                 xavier_init=True
+                                 )
     exp_per_model(model, data, config)
-    out = model(data.x, data.edge_index)
-    mad = MAD(out.detach())
-    wandb.log({
-        "MAD": mad
-    })
+
     wandb.finish()
-    
-        
-        
-        
 
 sweep_config = {
     'method': 'random'
@@ -57,19 +57,19 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [2,3,4,5,6,7,8,9]
+        'value': 5
     },
     'learning_rate': {
-        'values': np.arange(0.001, 0.02, 0.0005).tolist()
+        'value': 0.005
     },
     'smooth_fac': {
-        'values': np.arange(0.3, 0.8, 0.05).tolist()
+        'value': 0.7
     },
     'hid_dim': {
         'value': 32
     },
     'weight_decay': {
-        'value': 4e-4
+        'value': 3e-4
     },
     'num_epochs': {
         'value': 200
@@ -78,10 +78,10 @@ parameters_dict = {
         'value': 0.5
     },
     'dataset_name': {
-        'value': 'PubMed'
+        'value': 'CiteSeer'
     },
     'noise_percent': {
-        'value': 0
+        'value': 0.5
     }
 }
 sweep_config['parameters'] = parameters_dict

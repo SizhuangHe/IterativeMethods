@@ -3,13 +3,13 @@ from __future__ import print_function
 import numpy as np
 import torch
 
-
 import sys
 from pathlib import Path
 BASE_PATH = Path(__file__).parent.parent.parent.absolute()
 sys.path.insert(1, str(BASE_PATH))
 
 from src.utils.utils import build_iterativeGCN, make_Planetoid_data, exp_per_model, make_uniform_schedule
+from src.models.iterativeModels import iterativeGCN
 from src.utils.metrics import MAD
 
 import wandb
@@ -57,13 +57,13 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [2,3,4,5,6,7,8,9]
+        'value': 2
     },
     'learning_rate': {
-        'values': np.arange(0.001, 0.02, 0.0005).tolist()
+        'value': 0.005
     },
     'smooth_fac': {
-        'values': np.arange(0.3, 0.8, 0.05).tolist()
+        'value': 0.6
     },
     'hid_dim': {
         'value': 32
@@ -78,7 +78,7 @@ parameters_dict = {
         'value': 0.5
     },
     'dataset_name': {
-        'value': 'PubMed'
+        'value': 'Cora'
     },
     'noise_percent': {
         'value': 0
@@ -87,6 +87,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=200)
+wandb.agent(sweep_id, run_exp, count=100)
     
         

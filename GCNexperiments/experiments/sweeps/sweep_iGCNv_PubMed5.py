@@ -12,10 +12,9 @@ BASE_PATH = Path(__file__).parent.parent.parent.absolute()
 sys.path.insert(1, str(BASE_PATH))
 
 from src.utils.utils import build_iterativeGCN, make_Planetoid_data, exp_per_model, make_uniform_schedule
-from src.models.iterativeModels import iterativeGCN_variant
+from src.models.variantModels import iterativeGCN_variant
 
 import wandb
-from wandb import AlertLevel
 wandb.login()
 
 '''
@@ -27,7 +26,7 @@ def run_exp(config=None):
     wandb.init(job_type="Sweep", 
                project="IterativeMethods", 
                config=config, 
-               notes="variant of iGCN experiments",
+               notes="variant of iGCN experiments, from greatlakes",
                tags=["iterativeGCNvariant"])
     config = wandb.config
     train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
@@ -61,16 +60,16 @@ parameters_dict = {
         'values': [2, 3, 4, 5, 6, 7, 8, 9]
     },
     'learning_rate': {
-        'value': 0.009
+        'values': np.arange(0.001, 0.02, 0.0005).tolist()
     },
     'smooth_fac': {
-        'value': 0.45
+        'values': np.arange(0.3, 0.8, 0.05).tolist()
     },
     'hid_dim': {
         'value': 32
     },
     'weight_decay': {
-        'value': 2e-4
+        'value': 3e-4
     },
     'num_epochs': {
         'value': 200
@@ -79,15 +78,15 @@ parameters_dict = {
         'value': 0.5
     },
     'dataset_name': {
-        'value': 'Cora'
+        'value': 'PubMed'
     },
     'noise_percent': {
-        'value': 0.1
+        'value': 0.5
     }
 }
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=400)
+wandb.agent(sweep_id, run_exp, count=200)
     
         

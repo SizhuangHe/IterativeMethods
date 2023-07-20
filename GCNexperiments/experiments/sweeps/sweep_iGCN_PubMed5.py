@@ -60,10 +60,10 @@ parameters_dict = {
         'values': [2,3,4,5,6,7,8,9]
     },
     'learning_rate': {
-        'value': 0.0175
+        'values': np.arange(0.001, 0.02, 0.0005).tolist()
     },
     'smooth_fac': {
-        'value': 0.5
+        'values': np.arange(0.3, 0.8, 0.05).tolist()
     },
     'hid_dim': {
         'value': 32
@@ -87,6 +87,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=400)
+wandb.agent(sweep_id, run_exp, count=200)
     
         

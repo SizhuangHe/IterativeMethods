@@ -71,7 +71,7 @@ parameters_dict = {
         'value': 0.5 # does't matter
     },
     'hid_dim': {
-        'value': 32
+        'value': 8
     },
     'weight_decay': {
         'value': 5e-4
