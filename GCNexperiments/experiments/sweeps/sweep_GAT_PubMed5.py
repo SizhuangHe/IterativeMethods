@@ -62,10 +62,10 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [2,3,4,5,6,7,8,9]
+        'value': 4
     },
     'learning_rate': {
-        'values': np.arange(0.003, 0.02, 0.0005).tolist()
+        'value': 0.0035
     },
     'smooth_fac': {
         'value': 0.5 # does't matter

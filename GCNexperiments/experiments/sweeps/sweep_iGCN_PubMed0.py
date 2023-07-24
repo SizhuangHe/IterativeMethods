@@ -57,13 +57,13 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [2,3,4,5,6,7,8,9]
+        'value': 5
     },
     'learning_rate': {
-        'values': np.arange(0.001, 0.02, 0.0005).tolist()
+        'value': 0.007
     },
     'smooth_fac': {
-        'values': np.arange(0.3, 0.8, 0.05).tolist()
+        'value': 0.75
     },
     'hid_dim': {
         'value': 32
@@ -87,6 +87,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=200)
+wandb.agent(sweep_id, run_exp, count=100)
     
         

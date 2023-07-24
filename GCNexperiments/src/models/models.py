@@ -1,8 +1,8 @@
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GCNConv
-from torch_geometric.nn import GATConv
+from torch_geometric.nn import GCNConv, GATConv, global_mean_pool
+from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 # from torch_geometric.utils.dropout import dropout_edge
 
 class GCN(nn.Module):
@@ -62,13 +62,15 @@ class GAT(nn.Module):
                              out_channels=hidden_dim, 
                              heads=heads,
                              dropout=attn_dropout_rate, 
-                             concat=True)
+                             concat=True
+                             )
         self.act = nn.ELU()
         self.conv2 = GATConv(in_channels=hidden_dim * heads, 
                              out_channels=output_dim, 
                              heads=1,
                              dropout=attn_dropout_rate, 
-                             concat=False)
+                             concat=False
+                             )
         self.gcs = None
         self.dropout = dropout
         if num_layers >=3:
@@ -90,3 +92,56 @@ class GAT(nn.Module):
         x = self.conv2(x, edge_index)
 
         return x
+
+class GCN_inductive(nn.Module):
+    '''
+    This GCN model is for inductive tasks, more specifically, ogb-molpcba dataset.
+    The code is modified from
+      https://github.com/snap-stanford/ogb/blob/master/examples/graphproppred/mol/gnn.py
+    '''
+    def __init__(self, 
+                 num_tasks:int,
+                 hidden_dim: int,
+                 num_layers=2,
+                 dropout=0.5):
+        '''
+        num_tasks (int): number of labels to be predicted
+        num_layers (int): number of graph convolutional layers, excluding atom_encoder which encodes the feature to a hidden dimension
+        '''
+        super().__init__()
+        self.num_layers = num_layers
+        self.num_tasks = num_tasks
+        self.dropout = dropout
+        self.hidden_dim = hidden_dim
+        self.atom_encoder = AtomEncoder(hidden_dim)
+        
+        self.graph_convs = nn.ModuleList()
+        self.batch_norms = nn.ModuleList()
+
+        self.pool = global_mean_pool
+        self.graph_pred_linear = nn.Linear(self.hidden_dim, self.num_tasks)
+
+        
+        if self.num_layers < 2:
+            raise ValueError("Number of GNN layers must be greater than 1.")
+        for layer in range(num_layers):
+            self.graph_convs.append(GCNConv(hidden_dim, hidden_dim))
+            self.batch_norms.append(nn.BatchNorm1d(hidden_dim))   
+        
+    def forward(self, x, edge_index, batch):
+        h = self.atom_encoder(x)
+
+        for layer in range(self.num_layers):
+            h = self.graph_convs[layer](h, edge_index)
+            h = self.batch_norms[layer](h)
+            if layer == self.num_layers - 1:
+                # no ReLu on the last layer
+                h = F.dropout(h, self.dropout, training=self.training)
+            else:
+                h = F.relu(h)
+                h = F.dropout(h, self.dropout, training=self.training)
+
+        h = self.pool(h, batch)
+        h = self.graph_pred_linear(h)
+
+        return h

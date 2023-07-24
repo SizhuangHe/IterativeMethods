@@ -8,7 +8,7 @@ BASE_PATH = Path(__file__).parent.parent.parent.absolute()
 sys.path.insert(1, str(BASE_PATH))
 import torch
 from src.utils.utils import make_Planetoid_data, exp_per_model
-from src.models.GCN import GCN
+from src.models.models import GCN
 from src.utils.metrics import MAD
 
 import wandb

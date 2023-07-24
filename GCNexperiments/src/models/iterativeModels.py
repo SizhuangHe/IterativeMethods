@@ -76,7 +76,7 @@ class iterativeGAT(nn.Module):
                         out_channels=hidden_dim, 
                         heads=heads,
                         dropout=attn_dropout_rate, 
-                        concat=False)
+                        concat=True)
         self.decoder = nn.Linear(hidden_dim, output_dim)
         
         self.train_schedule = train_schedule

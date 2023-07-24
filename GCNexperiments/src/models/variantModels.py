@@ -174,3 +174,71 @@ class iterativeGCN_variant(nn.Module):
         x = self.decoder(x, edge_index)
         return x
     
+class iterativeGAT_variant(nn.Module):
+    def __init__(self, 
+                 input_dim: int, 
+                 output_dim: int,
+                 hidden_dim: int,
+                 train_schedule,
+                 heads=8,
+                 dropout=0.6,
+                 attn_dropout_rate=0.6,
+                 eval_schedule=None,
+                 xavier_init=False
+                 ):
+        super().__init__() 
+        self.encoder = GATConv(in_channels=input_dim,
+                                out_channels=hidden_dim,
+                                heads=heads,
+                                dropout=attn_dropout_rate,
+                                concat=True
+                                )
+        self.gc = GATConv(in_channels=hidden_dim * heads, 
+                            out_channels=hidden_dim * heads, 
+                            heads=heads,
+                            dropout=attn_dropout_rate, 
+                            concat=False
+                            )
+        self.decoder = GATConv(in_channels=hidden_dim * heads, 
+                                out_channels=output_dim, 
+                                heads=1,
+                                dropout=attn_dropout_rate, 
+                                concat=False
+                                )
+        
+        self.train_schedule = train_schedule
+        if eval_schedule is not None:
+            self.eval_schedule = eval_schedule
+        else:
+            self.eval_schedule = self.train_schedule
+        self.dropout = dropout
+        if xavier_init:
+            self._init_xavier()
+        
+    def _init_xavier(self):
+        for m in self.modules():
+            if isinstance(m, nn.Linear): # GCNConv layers are already Xavier initilized
+                nn.init.xavier_normal_(m.weight)
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+      
+    def _next_x(self, old_x, new_x, smooth_fac):
+        next_x = smooth_fac * old_x + (1 - smooth_fac) * new_x
+        return next_x
+
+    def forward(self, x, edge_index):
+        if self.training:
+            schedule = self.train_schedule
+        else:
+            schedule = self.eval_schedule
+        
+        x = F.relu(self.encoder(x))
+        x = F.dropout(x, self.dropout, training=self.training)
+        for smooth_fac in schedule:      
+            old_x = x
+            x = F.relu(self.gc(x, edge_index))
+            new_x = F.dropout(x, self.dropout, training=self.training)
+            x = self._next_x(old_x, new_x, smooth_fac) 
+        x = self.decoder(x)
+        
+        return x    
