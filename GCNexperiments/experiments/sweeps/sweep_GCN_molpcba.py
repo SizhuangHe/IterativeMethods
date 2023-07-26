@@ -22,6 +22,12 @@ wandb.login()
 This script is for sweeping for a set of hyperparameters for the usual GCN,
 on the Cora dataset with a fixed amount of noise.
 '''
+dataset = PygGraphPropPredDataset(name="ogbg-molpcba") 
+split_idx = dataset.get_idx_split() 
+train_loader = DataLoader(dataset[split_idx["train"]], batch_size=32, shuffle=True)
+valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False)
+test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=False)
+evaluator = Evaluator(name="ogbg-molpcba")
 
 def run_exp(config=None):
     wandb.init(job_type="molpcba",
@@ -30,22 +36,23 @@ def run_exp(config=None):
                notes="usualGCN",
                tags=["usualGCN"])
     config = wandb.config
-    dataset = PygGraphPropPredDataset(name="ogbg-molpcba") 
-    split_idx = dataset.get_idx_split() 
-    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=32, shuffle=True)
-    valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False)
-    test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=False)
-    evaluator = Evaluator(name="ogbg-molpcba")
+    device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
+    device_str = 'cuda' if torch.cuda.is_available() else 'cpu'
+    wandb.log({
+        "device": device_str
+    })
+
     model = GCN_inductive(
             num_tasks=dataset.num_tasks,
             hidden_dim=config.hid_dim,
             num_layers=config.num_iter_layers,
             dropout=0.5)
-    exp_mol(model, train_loader, valid_loader, test_loader, evaluator, config)
+    model = model.to(device)
+    exp_mol(model, train_loader, valid_loader, test_loader, evaluator, config, device)
+    if torch.cuda.is_available():
+        torch.cuda.empty_cache()
     wandb.finish()
     
-        
-        
         
 
 sweep_config = {
@@ -60,28 +67,28 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [2,3,4,5,6,7,8,9]
+        'value': 5
     },
     'learning_rate': {
-        'values': np.arange(0.001, 0.02, 0.0005).tolist()
+        'value': 0.001
     },
     'smooth_fac': {
         'value': 0.5 # does't matter
     },
     'hid_dim': {
-        'values': [16, 32]
+        'value': 300
     },
     'weight_decay': {
-        'value': 5e-4
+        'value': 0
     },
     'num_epochs': {
-        'value': 200
+        'value': 100
     },
     'dropout': {
         'value': 0.6
     },
     'dataset_name': {
-        'value': 'CiteSeer'
+        'value': 'ogbg-molpcba'
     },
     'noise_percent': {
         'value': 0
@@ -93,6 +100,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=50)
+wandb.agent(sweep_id, run_exp, count=100)
     
         

@@ -89,11 +89,11 @@ def test(model, data):
     
     return loss, acc
 
-def train_mol_epoch(model, loader, optimizer):
+def train_mol_epoch(model, loader, optimizer, device):
     model.train()
     criterion = torch.nn.BCEWithLogitsLoss()
     for step, batched_data in enumerate(tqdm(loader, desc="Iteration")):  # Iterate in batches over the training dataset.
-        
+        batched_data = batched_data.to(device)
         pred = model(batched_data.x, batched_data.edge_index, batched_data.batch)
         ## ignore nan targets (unlabeled) when computing training loss.
         is_labeled = batched_data.y == batched_data.y
@@ -102,42 +102,43 @@ def train_mol_epoch(model, loader, optimizer):
         loss.backward() 
         optimizer.step()
         
-def eval_mol(model, loader, evaluator):
+def eval_mol(model, loader, evaluator, device):
     model.eval()
     y_true = []
     y_pred = []
     for step, batched_data in enumerate(tqdm(loader, desc="Iteration")):
+        batched_data = batched_data.to(device)
         with torch.no_grad():
             pred = model(batched_data.x, batched_data.edge_index, batched_data.batch)
             y_true.append(batched_data.y.view(pred.shape).detach())
             y_pred.append(pred.detach())
-    y_true = torch.cat(y_true, dim = 0).numpy()
-    y_pred = torch.cat(y_pred, dim = 0).numpy()
+    y_true = torch.cat(y_true, dim = 0).cpu().numpy()
+    y_pred = torch.cat(y_pred, dim = 0).cpu().numpy()
     input_dict = {"y_true": y_true, "y_pred": y_pred}
     return evaluator.eval(input_dict)
 
-def train_mol(model, train_loader, valid_loader, evaluator,config):
+def train_mol(model, train_loader, valid_loader, evaluator,config, device):
     wandb.watch(model, log="all", log_freq=10)
     optimizer = optim.Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
     for epoch in range(config.num_epochs):
-        train_mol_epoch(model, train_loader, optimizer)
-        ap = eval_mol(model, valid_loader, evaluator)
+        train_mol_epoch(model, train_loader, optimizer, device)
+        ap = eval_mol(model, valid_loader, evaluator, device)
         wandb.log({
             "Validate ap": ap
         })
 
-def test_mol(model, loader, evaluator):
+def test_mol(model, loader, evaluator, device):
     model.eval()
-    ap = eval_mol(model, loader, evaluator)
+    ap = eval_mol(model, loader, evaluator, device)
     return ap
 
-def exp_mol(model, train_loader, valid_loader, test_loader, evaluator,config):
+def exp_mol(model, train_loader, valid_loader, test_loader, evaluator,config, device):
     num_params = count_parameters(model)
     wandb.log({ 
             'num_param': num_params
     }) 
-    train_mol(model, train_loader, valid_loader, evaluator)
-    test_ap=test_mol(model, test_loader, evaluator)
+    train_mol(model, train_loader, valid_loader, evaluator, config, device)
+    test_ap=test_mol(model, test_loader, evaluator, device)
     wandb.log({
         "Test ap": test_ap
     })

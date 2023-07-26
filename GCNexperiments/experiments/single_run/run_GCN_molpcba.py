@@ -1,6 +1,7 @@
 import ogb
 from ogb.graphproppred import PygGraphPropPredDataset, Evaluator
 from torch_geometric.loader import DataLoader
+import torch
 import wandb
 wandb.login()
 
@@ -19,6 +20,7 @@ test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=Fals
 evaluator = Evaluator(name="ogbg-molpcba")
 
 def run_exp(config=None):
+    device = 'cuda' if torch.cuda.is_available() else 'cpu'
     wandb.init(job_type="molpcba",
                project="IterativeMethods", 
                config=config, 
@@ -30,12 +32,14 @@ def run_exp(config=None):
             hidden_dim=32,
             num_layers=2,
             dropout=0.5)
-    exp_mol(model, train_loader, valid_loader, test_loader, evaluator, config)
+    model = model.to(device)
+    exp_mol(model, train_loader, valid_loader, test_loader, evaluator, config, device)
     
     
 
+
 config = {
-    'num_epochs': 200,
+    'num_epochs': 2,
     'dataset_name': "Cora",
     'noise_percent': 0,
     'hid_dim': 32,
@@ -45,3 +49,5 @@ config = {
     'learning_rate': 0.005,
     'weight_decay': 4e-4
 } 
+
+run_exp(config)
