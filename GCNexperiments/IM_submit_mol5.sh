@@ -9,7 +9,7 @@
 #SBATCH --tasks-per-node=1
 #SBATCH --mem-per-cpu=16000m 
 #SBATCH --time=25:00:00
-#SBATCH --account=stats_dept2
+#SBATCH --account=stats_dept1
 #SBATCH --output=/home/%u/%x-%j.log
 
 cd /home/sizhuang/Research/IterativeMethods
@@ -20,7 +20,7 @@ cd /home/sizhuang/Research/IterativeMethods/GCNexperiments/experiments/sweeps
 
 # Execute each Python file on a separate CPU using srun
 
-srun -n 1 --exclusive python3 sweep_iGCN_molhiv.py 
+srun -n 1 --exclusive python3 sweep_iGCN_molhiv5.py 
 
 
 

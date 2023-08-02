@@ -26,7 +26,7 @@ sweep_config = {
 }
 
 metric = {
-    'name': 'accuracy',
+    'name': 'rocauc',
     'goal': 'maximize'
 }
 sweep_config['metric'] = metric
@@ -36,13 +36,13 @@ parameters_dict = {
         'values': [4,5,6,7,8,9,10]
     },
     'learning_rate': {
-        'values': [0.0008, 0.0009, 0.001, 0.0011, 0.0012, 0.0013 ,0.0014, 0.0015, 0.0016]
+        'values': np.arange(0.0005, 0.002, 0.0001).tolist()
     },
     'smooth_fac': {
-        'values': [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
+        'values': np.arange(0.1, 0.95, 0.05).tolist()
     },
     'hid_dim': {
-        'value': 400 
+        'values': [300, 350, 400, 450, 500, 550, 600]
     },
     'weight_decay': {
         'value': 0
@@ -54,10 +54,10 @@ parameters_dict = {
         'value': 0.6
     },
     'dataset_name': {
-        'value': 'ogbg-molhiv'
+        'value': 'ogbg-molpcba'
     },
     'warmup_pct': {
-        'values': [0.15, 0.2]
+        'values': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
     }
 }
 sweep_config['parameters'] = parameters_dict
@@ -66,15 +66,15 @@ sweep_config['parameters'] = parameters_dict
 This script is for sweeping for a set of hyperparameters for the usual GCN,
 on the Cora dataset with a fixed amount of noise.
 '''
-dataset = PygGraphPropPredDataset(name='ogbg-molhiv') 
+dataset = PygGraphPropPredDataset(name='ogbg-molpcba') 
 split_idx = dataset.get_idx_split() 
 train_loader = DataLoader(dataset[split_idx["train"]], batch_size=32, shuffle=True)
 valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False)
 test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=False)
-evaluator = Evaluator(name="ogbg-molhiv")
+evaluator = Evaluator(name="ogbg-molpcba")
 
 def run_exp(config=None):
-    wandb.init(job_type="molhiv",
+    wandb.init(job_type="molpcba",
                project="IterativeMethods", 
                config=config, 
                notes="iGCN",
@@ -103,7 +103,8 @@ def run_exp(config=None):
     wandb.finish()
     
         
+
+
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=50)
+wandb.agent(sweep_id, run_exp, count=100)
     
-        

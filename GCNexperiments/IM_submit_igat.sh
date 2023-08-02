@@ -4,9 +4,9 @@
 #SBATCH --mail-type=BEGIN,END
 #SBATCH --cpus-per-task=1
 #SBATCH --nodes=1
-#SBATCH --tasks-per-node=10
+#SBATCH --tasks-per-node=12
 #SBATCH --mem-per-cpu=6000m 
-#SBATCH --time=4:00:00
+#SBATCH --time=30:00:00
 #SBATCH --account=lsa1
 #SBATCH --partition=standard
 #SBATCH --output=/home/%u/%x-%j.log
@@ -19,10 +19,12 @@ cd /home/sizhuang/Research/IterativeMethods/GCNexperiments/experiments/sweeps
 
 # Execute each Python file on a separate CPU using srun
 
-srun -n 10 --exclusive python3 sweep_iGAT_CORA5.py 
-
-
-
+srun -n 2 --exclusive python3 sweep_iGAT_CORA0.py &
+srun -n 2 --exclusive python3 sweep_iGAT_CORA5.py &
+srun -n 2 --exclusive python3 sweep_iGAT_CORA7.py &
+srun -n 2 --exclusive python3 sweep_iGAT_CiteSeer0.py &
+srun -n 2 --exclusive python3 sweep_iGAT_CiteSeer5.py &
+srun -n 2 --exclusive python3 sweep_iGAT_CiteSeer7.py
 
 # Wait for all tasks to finish
 wait

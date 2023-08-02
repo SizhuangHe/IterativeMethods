@@ -107,8 +107,8 @@ class iterativeGCN_inductive(nn.Module):
         for smooth_fac in schedule:      
             old_x = x
             x = self.graph_conv(x, edge_index)
-            x = self.batch_norm(x)
             x = F.relu(x)
+            x = self.batch_norm(x)
             new_x = F.dropout(x, self.dropout, training=self.training)
             x = self._next_x(old_x, new_x, smooth_fac) 
         x = self.pool(x, batch)

@@ -2,6 +2,8 @@ from __future__ import division
 from __future__ import print_function
 import numpy as np
 import torch
+from torch.optim import Adam
+from torch.optim.lr_scheduler import OneCycleLR
 
 import sys
 from pathlib import Path
@@ -38,7 +40,9 @@ def run_exp(config=None):
                 attn_dropout_rate=config.dropout,
                 xavier_init=True
     )
-    exp_per_model(model, data, config)
+    optimizer = Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    scheduler = OneCycleLR(optimizer, max_lr=config.learning_rate, steps_per_epoch=1, epochs=config.num_epochs, pct_start=config.warmup_pct)
+    exp_per_model(model, data, optimizer, scheduler, config)
 
     out = model(data.x, data.edge_index)
     mad = MAD(out.detach())
@@ -73,7 +77,7 @@ parameters_dict = {
         'value': 0.35
     },
     'hid_dim': {
-        'value': 32
+        'value': 64
     },
     'weight_decay': {
         'value': 5e-4
@@ -92,11 +96,14 @@ parameters_dict = {
     },
     'noise_seed':{
         'value': 2147483647
+    },
+    'warmup_pct':{
+        'values': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4]
     }
 }
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=20)
+wandb.agent(sweep_id, run_exp, count=50)
     
         

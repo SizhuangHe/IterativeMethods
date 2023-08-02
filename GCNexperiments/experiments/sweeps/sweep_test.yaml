@@ -1,0 +1,33 @@
+program: sweep_iGAT_PubMed0.py
+method: random
+metric:
+  name: accuracy
+  goal: maximize
+parameters:
+  num_iter_layers:
+    value: 2
+  learning_rate:
+    value: 0.01
+  smooth_fac:
+    value: 0.5
+  hid_dim:
+    value: 32
+  weight_decay:
+    value: 5e-4
+  num_epochs:
+    value: 200
+  dropout:
+    value: 0.5
+  dataset_name:
+    value: 'Cora'
+  noise_percent:
+    value: 0
+  noise_seed:
+    value: 2147483647
+  warmup_pct:
+    value: 0.05
+command:
+  - /Users/sizhuang/Desktop/GitHubRepos/IterativeMethods/iterENV/bin/python3
+  - ${program}
+  - ${args}
+

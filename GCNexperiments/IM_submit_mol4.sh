@@ -20,7 +20,7 @@ cd /home/sizhuang/Research/IterativeMethods/GCNexperiments/experiments/sweeps
 
 # Execute each Python file on a separate CPU using srun
 
-srun -n 1 --exclusive python3 sweep_iGCN_molhiv.py 
+srun -n 1 --exclusive python3 sweep_iGCN_molhiv4.py 
 
 
 
