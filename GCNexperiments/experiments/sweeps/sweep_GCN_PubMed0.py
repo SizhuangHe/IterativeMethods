@@ -21,7 +21,7 @@ This script is for sweeping for a set of hyperparameters for the usual GCN,
 on the Cora dataset with a fixed amount of noise.
 '''
 
-def run_exp(config=None):
+def run_PM_iGAT(config=None):
     wandb.init(job_type="Sweep", 
                project="IterativeMethods", 
                config=config, 

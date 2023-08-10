@@ -14,7 +14,7 @@ from math import sqrt
 import wandb
 
 '''
-This file contains for utility functions for experiments.
+This file contains utilities for experiments.
 '''
 
 def accuracy(guess, truth):
@@ -45,8 +45,10 @@ def add_noise(data, percent=0, seed=None):
 def count_parameters(model):
     return sum(p.numel() for p in model.parameters() if p.requires_grad)
 
-def train_epoch(model, data, optimizer, scheduler):
+def train_epoch(model, data, optimizer, scheduler, device):
     model.train()
+    data = data.to(device)
+    
     output = model(data.x, data.edge_index)
     loss = F.cross_entropy(output[data.train_mask], data.y[data.train_mask])
     pred = F.log_softmax(output[data.train_mask], dim=1).argmax(dim=1)
@@ -61,20 +63,22 @@ def train_epoch(model, data, optimizer, scheduler):
         })
     return loss, acc
 
-def validate_epoch(model, data):
+def validate_epoch(model, data, device):
     model.eval()
+    data = data.to(device)
+
     output = model(data.x, data.edge_index)
     loss = F.cross_entropy(output[data.val_mask], data.y[data.val_mask])
     pred = F.log_softmax(output[data.val_mask], dim=1).argmax(dim=1)
     acc = accuracy(pred, data.y[data.val_mask])
     return loss, acc
 
-def train(model, data, optimizer, scheduler, config):
+def train(model, data, optimizer, scheduler, config, device):
     wandb.watch(model, log="all", log_freq=10)
     
     for epoch in range(config.num_epochs):
-        loss_train, acc_train = train_epoch(model, data, optimizer, scheduler)
-        loss_val, acc_val = validate_epoch(model, data)
+        loss_train, acc_train = train_epoch(model, data, optimizer, scheduler, device)
+        loss_val, acc_val = validate_epoch(model, data, device)
 
         wandb.log({
             'training_loss': loss_train,
@@ -84,8 +88,10 @@ def train(model, data, optimizer, scheduler, config):
             "epoch": epoch+1,
         })
   
-def test(model, data):
+def test(model, data, device):
     model.eval()
+    data = data.to(device)
+
     output = model(data.x, data.edge_index)
     loss = F.cross_entropy(output[data.test_mask], data.y[data.test_mask])
     pred = F.log_softmax(output[data.test_mask], dim=1).argmax(dim=1)
@@ -93,13 +99,13 @@ def test(model, data):
     
     return loss, acc
 
-def exp_per_model(model, data, optimizer, scheduler,config):
+def exp_per_model(model, data, optimizer, scheduler, config, device):
     num_params = count_parameters(model)
     wandb.log({ 
             'num_param': num_params
     }) 
-    train(model, data, optimizer, scheduler, config)
-    loss_test, acc_test = test(model, data)
+    train(model, data, optimizer, scheduler, config, device)
+    loss_test, acc_test = test(model, data, device)
     wandb.log({
         'test_loss': loss_test,
         'test_accuracy': acc_test
@@ -111,7 +117,7 @@ def train_mol_epoch(model, loader, optimizer, scheduler, device):
     epoch_loss = 0
     for step, batched_data in enumerate(loader):  # Iterate in batches over the training dataset.
         batched_data = batched_data.to(device)
-        pred = model(batched_data.x, batched_data.edge_index, batched_data.batch)
+        pred = model(batched_data.x, batched_data.edge_index, batched_data.edge_attr, batched_data.batch)
         ## ignore nan targets (unlabeled) when computing training loss.
         is_labeled = batched_data.y == batched_data.y
         loss = criterion(pred.to(torch.float32)[is_labeled], batched_data.y.to(torch.float32)[is_labeled])
@@ -126,8 +132,7 @@ def train_mol_epoch(model, loader, optimizer, scheduler, device):
     wandb.log({
         "training_loss": epoch_loss
     })
-    
-        
+          
 def eval_mol(model, loader, evaluator, device):
     model.eval()
     y_true = []
@@ -135,7 +140,7 @@ def eval_mol(model, loader, evaluator, device):
     for step, batched_data in enumerate(loader):
         batched_data = batched_data.to(device)
         with torch.no_grad():
-            pred = model(batched_data.x, batched_data.edge_index, batched_data.batch)
+            pred = model(batched_data.x, batched_data.edge_index, batched_data.edge_attr, batched_data.batch)
             y_true.append(batched_data.y.view(pred.shape).detach())
             y_pred.append(pred.detach())
     y_true = torch.cat(y_true, dim = 0).cpu().numpy()
@@ -144,19 +149,17 @@ def eval_mol(model, loader, evaluator, device):
     return evaluator.eval(input_dict)
 
 def train_mol(model, optimizer, scheduler, train_loader, valid_loader, evaluator,config, device):
-    wandb.watch(model, log="all", log_freq=10)
+    wandb.watch(model, log="all", log_freq=1000)
     
     for epoch in range(config.num_epochs):
         train_mol_epoch(model, train_loader, optimizer, scheduler, device)
-        ap = eval_mol(model, valid_loader, evaluator, device)
+        val_ap = eval_mol(model, valid_loader, evaluator, device)
+        train_ap = eval_mol(model, train_loader, evaluator, device)
         wandb.log({
-            "Validate ap": ap
+            "Validate ap": val_ap,
+            "Train ap": train_ap,
+            "epoch": epoch+1
         })
-
-def test_mol(model, loader, evaluator, device):
-    model.eval()
-    ap = eval_mol(model, loader, evaluator, device)
-    return ap
 
 def exp_mol(model, optimizer, scheduler,train_loader, valid_loader, test_loader, evaluator,config, device):
     num_params = count_parameters(model)
@@ -164,7 +167,7 @@ def exp_mol(model, optimizer, scheduler,train_loader, valid_loader, test_loader,
             'num_param': num_params
     }) 
     train_mol(model, optimizer, scheduler,train_loader, valid_loader, evaluator, config, device)
-    test_ap=test_mol(model, test_loader, evaluator, device)
+    test_ap=eval_mol(model, test_loader, evaluator, device)
     wandb.log({
         "Test ap": test_ap
     })
@@ -192,8 +195,6 @@ def make_Amazon_data(config, seed=None):
     num_classes = dataset.num_classes
     return data, num_features, num_classes
 
-
-
 def build_iterativeGCN(config, input_dim, output_dim, train_schedule):
     model = iterativeGCN(input_dim=input_dim,
                             output_dim=output_dim,
@@ -203,10 +204,58 @@ def build_iterativeGCN(config, input_dim, output_dim, train_schedule):
                             xavier_init=True)
     return model
 
-def lr_warmup(current_step: int,
-              warmup_steps: int,
-              training_steps: int):
-    if current_step < warmup_steps:  
-        return float(current_step / warmup_steps)
-    else:                                 
-        return max(0.0, sqrt(float(training_steps - current_step) / float(max(1, training_steps - warmup_steps))))
+def train_arxiv_epoch(model, data, train_idx, optimizer, scheduler, device):
+    model.train()
+    data = data.to(device)
+
+    out = model(data.x, data.adj_t)[train_idx]
+    loss = F.cross_entropy(out, data.y.squeeze(1)[train_idx])
+    
+    optimizer.zero_grad()
+    loss.backward()
+    optimizer.step()
+    scheduler.step()
+    wandb.log({
+            "lr_scheduler": scheduler.get_last_lr()[0]
+    })
+    
+    epoch_loss = loss.item()
+    return epoch_loss
+
+def eval_arxiv(model, data, idx, evaluator, device):
+    model.eval()
+    data = data.to(device)
+
+    out = model(data.x, data.adj_t)
+    y_pred = out.argmax(dim=-1, keepdim=True).cpu()
+    y_true = data.y.cpu()
+    acc = evaluator.eval({
+        'y_true': y_true[idx],
+        'y_pred': y_pred[idx],
+    })['acc']
+    return acc
+
+def train_arxiv(model, data, optimizer, train_idx, valid_idx, evaluator, scheduler, num_epochs, device):
+    wandb.watch(model, log="all", log_freq=10)
+    
+    for epoch in range(num_epochs):
+        train_loss = train_arxiv_epoch(model, data, train_idx, optimizer,scheduler, device)
+        train_acc = eval_arxiv(model, data, valid_idx, evaluator, device)
+        valid_acc = eval_arxiv(model, data, train_idx, evaluator, device)
+        wandb.log({
+            'training_loss': train_loss,
+            'training_accuracy': train_acc,
+            'validation_accuracy': valid_acc,
+            "epoch": epoch+1
+        })
+
+def exp_arxiv(model, data, optimizer, scheduler, train_idx, valid_idx, test_idx, evaluator, num_epochs, device):
+    num_params = count_parameters(model)
+    wandb.log({ 
+            'num_param': num_params
+    })
+    train_arxiv(model, data, optimizer, train_idx, valid_idx, evaluator, scheduler, num_epochs, device)
+    test_acc = eval_arxiv(model, data, test_idx, evaluator, device)
+    wandb.log({
+        'test_accuracy': test_acc
+    })

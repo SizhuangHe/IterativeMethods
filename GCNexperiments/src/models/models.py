@@ -1,6 +1,7 @@
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
+from src.models.layers import GCNConv_mol
 from torch_geometric.nn import GCNConv, GATConv, global_mean_pool
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 # from torch_geometric.utils.dropout import dropout_edge
@@ -93,9 +94,39 @@ class GAT(nn.Module):
 
         return x
 
+class GCN_arxiv(nn.Module):
+    def __init__(self,
+                 input_dim:int,
+                 output_dim: int,
+                 hid_dim:int,
+                 num_layers:int,
+                 dropout=0.5):
+        super().__init__()
+        self.dropout = dropout
+        self.graph_convs = nn.ModuleList()
+        self.batch_norms = nn.ModuleList()
+
+        self.graph_convs.append(GCNConv(in_channels=input_dim, out_channels=hid_dim))
+        self.batch_norms.append(nn.BatchNorm1d(hid_dim))
+
+        for _ in range(num_layers - 2):
+            self.graph_convs.append(GCNConv(in_channels=hid_dim, out_channels=hid_dim))
+            self.batch_norms.append(nn.BatchNorm1d(hid_dim))
+        
+        self.graph_convs.append(GCNConv(in_channels=hid_dim, out_channels=output_dim))
+    
+    def forward(self, x, adj_t):
+        for i, conv in enumerate(self.graph_convs[:-1]):
+            x = conv(x, adj_t)
+            x = self.batch_norms[i](x)
+            x = F.relu(x)
+            x = F.dropout(x, p=self.dropout, training=self.training)
+        x = self.graph_convs[-1](x, adj_t)
+        
+        return x
 class GCN_inductive(nn.Module):
     '''
-    This GCN model is for inductive tasks, more specifically, ogb-molpcba dataset.
+    This GCN model is for inductive tasks, more specifically, ogbg-molhiv and ogbg-molpcba dataset.
     The code is modified from
       https://github.com/snap-stanford/ogb/blob/master/examples/graphproppred/mol/gnn.py
     '''
@@ -125,14 +156,14 @@ class GCN_inductive(nn.Module):
         if self.num_layers < 2:
             raise ValueError("Number of GNN layers must be greater than 1.")
         for layer in range(num_layers):
-            self.graph_convs.append(GCNConv(hidden_dim, hidden_dim))
+            self.graph_convs.append(GCNConv_mol(hidden_dim, hidden_dim))
             self.batch_norms.append(nn.BatchNorm1d(hidden_dim))   
         
-    def forward(self, x, edge_index, batch):
+    def forward(self, x, edge_index, edge_attr, batch):
         h = self.atom_encoder(x)
 
         for layer in range(self.num_layers):
-            h = self.graph_convs[layer](h, edge_index)
+            h = self.graph_convs[layer](h, edge_index, edge_attr)
             h = self.batch_norms[layer](h)
             if layer == self.num_layers - 1:
                 # no ReLu on the last layer

@@ -14,7 +14,7 @@ from src.models.iterativeModels import iterativeGCN_inductive
 from src.utils.utils import exp_mol, make_uniform_schedule
 from ogb.graphproppred import PygGraphPropPredDataset, Evaluator
 from torch_geometric.loader import DataLoader
-from torch.optim.lr_scheduler import OneCycleLR
+from torch.optim.lr_scheduler import ConstantLR
 from torch.optim import Adam
 
 import wandb
@@ -33,31 +33,34 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [4,5,6,7,8,9,10]
+        'values': [6,7,8,9,10,11,12]
     },
     'learning_rate': {
-        'values': [0.0008, 0.0009, 0.001, 0.0011, 0.0012, 0.0013 ,0.0014, 0.0015, 0.0016]
+        'values': [0.0001, 0.0002, 0.0004, 0.0006, 0.0008]
     },
     'smooth_fac': {
-        'values': [0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85]
+        'values': [0.6, 0.65, 0.7, 0.75, 0.8]
     },
     'hid_dim': {
-        'value': 500 
+        'value': 400 
     },
     'weight_decay': {
-        'values': [0, 1e-4, 1e-5, 1e-6]
+        'values': [0,1e-6,1e-5,1e-4]
     },
     'num_epochs': {
         'value': 100
     },
     'dropout': {
-        'value': 0.6
+        'values': [0.5, 0.6]
     },
     'dataset_name': {
         'value': 'ogbg-molhiv'
     },
     'warmup_pct': {
-        'values': [0.1, 0.15, 0.2, 0.25, 0.3]
+        'values': [0.1, 0.15]
+    },
+    'batch_size':{
+        'value': 32
     }
 }
 sweep_config['parameters'] = parameters_dict
@@ -68,9 +71,6 @@ on the Cora dataset with a fixed amount of noise.
 '''
 dataset = PygGraphPropPredDataset(name='ogbg-molhiv') 
 split_idx = dataset.get_idx_split() 
-train_loader = DataLoader(dataset[split_idx["train"]], batch_size=32, shuffle=True)
-valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False)
-test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=False)
 evaluator = Evaluator(name="ogbg-molhiv")
 
 def run_exp(config=None):
@@ -85,6 +85,9 @@ def run_exp(config=None):
     wandb.log({
         "device": device_str
     })
+    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=config.batch_size, shuffle=True)
+    valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=config.batch_size, shuffle=False)
+    test_loader = DataLoader(dataset[split_idx["test"]], batch_size=config.batch_size, shuffle=False)
     train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
     wandb.log({
         "train_schedule": train_schedule
@@ -93,10 +96,10 @@ def run_exp(config=None):
             num_tasks=dataset.num_tasks,
             hidden_dim=config.hid_dim,
             train_schedule=train_schedule,
-            dropout=0.5)
+            dropout=config.dropout)
     model = model.to(device)
     optimizer = Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
-    scheduler = OneCycleLR(optimizer, max_lr=config.learning_rate, steps_per_epoch=len(train_loader), epochs=config.num_epochs, pct_start=config.warmup_pct)
+    scheduler = ConstantLR(optimizer, factor=1, total_iters=1)
     exp_mol(model, optimizer, scheduler,train_loader, valid_loader, test_loader, evaluator, config, device)
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
@@ -104,6 +107,6 @@ def run_exp(config=None):
     
         
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=50)
+wandb.agent(sweep_id, run_exp, count=100)
     
         

@@ -36,13 +36,13 @@ parameters_dict = {
         'values': [4,5,6,7,8,9,10]
     },
     'learning_rate': {
-        'values': np.arange(0.0005, 0.002, 0.0001).tolist()
+        'values': [0.0001, 0.0002, 0.0003, 0.0007, 0.0008]
     },
     'smooth_fac': {
-        'values': np.arange(0.1, 0.95, 0.05).tolist()
+        'values': np.arange(0.3, 0.85, 0.05).tolist()
     },
     'hid_dim': {
-        'values': [300, 350, 400, 450, 500, 550, 600]
+        'value': 64
     },
     'weight_decay': {
         'value': 0
@@ -51,13 +51,13 @@ parameters_dict = {
         'value': 100
     },
     'dropout': {
-        'value': 0.6
+        'values': [0.4, 0.6]
     },
     'dataset_name': {
         'value': 'ogbg-molpcba'
     },
     'warmup_pct': {
-        'values': [0.05, 0.1, 0.15, 0.2, 0.25, 0.3]
+        'values': [0.05, 0.1, 0.15, 0.2, 0.25]
     }
 }
 sweep_config['parameters'] = parameters_dict

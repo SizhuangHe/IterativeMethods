@@ -10,10 +10,12 @@ sys.path.insert(1, str(BASE_PATH))
 import torch
 
 from src.utils.metrics import MAD
-from src.models.models import GCN_inductive
-from src.utils.utils import exp_mol
+from src.models.iterativeModels import iterativeGCN_inductive
+from src.utils.utils import exp_mol, make_uniform_schedule
 from ogb.graphproppred import PygGraphPropPredDataset, Evaluator
 from torch_geometric.loader import DataLoader
+from torch.optim.lr_scheduler import ConstantLR
+from torch.optim import Adam
 
 import wandb
 wandb.login()
@@ -31,34 +33,34 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'value': 5
+        'values': [6,7,8,9,10,11,12]
     },
     'learning_rate': {
-        'value': 0.001
+        'values': [0.0001, 0.0002, 0.0004, 0.0006, 0.0008]
     },
     'smooth_fac': {
-        'value': 0.5 # does't matter
+        'values': [0.6, 0.65, 0.7, 0.75, 0.8]
     },
     'hid_dim': {
-        'value': 300
+        'value': 400 
     },
     'weight_decay': {
-        'value': 0
+        'values': [0,1e-6,1e-5,1e-4]
     },
     'num_epochs': {
         'value': 100
     },
     'dropout': {
-        'value': 0.6
+        'values': [0.5, 0.6]
     },
     'dataset_name': {
         'value': 'ogbg-molhiv'
     },
-    'noise_percent': {
-        'value': 0
+    'warmup_pct': {
+        'values': [0.1, 0.15]
     },
-    'noise_seed':{
-        'value': 2147483647
+    'batch_size':{
+        'value': 32
     }
 }
 sweep_config['parameters'] = parameters_dict
@@ -69,39 +71,42 @@ on the Cora dataset with a fixed amount of noise.
 '''
 dataset = PygGraphPropPredDataset(name='ogbg-molhiv') 
 split_idx = dataset.get_idx_split() 
-train_loader = DataLoader(dataset[split_idx["train"]], batch_size=32, shuffle=True)
-valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=32, shuffle=False)
-test_loader = DataLoader(dataset[split_idx["test"]], batch_size=32, shuffle=False)
 evaluator = Evaluator(name="ogbg-molhiv")
 
 def run_exp(config=None):
     wandb.init(job_type="molhiv",
                project="IterativeMethods", 
                config=config, 
-               notes="usualGCN",
-               tags=["usualGCN"])
+               notes="iGCN",
+               tags=["iGCN"])
     config = wandb.config
     device = torch.device('cuda') if torch.cuda.is_available() else torch.device('cpu')
     device_str = 'cuda' if torch.cuda.is_available() else 'cpu'
     wandb.log({
         "device": device_str
     })
-
-    model = GCN_inductive(
+    train_loader = DataLoader(dataset[split_idx["train"]], batch_size=config.batch_size, shuffle=True)
+    valid_loader = DataLoader(dataset[split_idx["valid"]], batch_size=config.batch_size, shuffle=False)
+    test_loader = DataLoader(dataset[split_idx["test"]], batch_size=config.batch_size, shuffle=False)
+    train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
+    wandb.log({
+        "train_schedule": train_schedule
+    })
+    model = iterativeGCN_inductive(
             num_tasks=dataset.num_tasks,
             hidden_dim=config.hid_dim,
-            num_layers=config.num_iter_layers,
-            dropout=0.5)
+            train_schedule=train_schedule,
+            dropout=config.dropout)
     model = model.to(device)
-    exp_mol(model, train_loader, valid_loader, test_loader, evaluator, config, device)
+    optimizer = Adam(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
+    scheduler = ConstantLR(optimizer, factor=1, total_iters=1)
+    exp_mol(model, optimizer, scheduler,train_loader, valid_loader, test_loader, evaluator, config, device)
     if torch.cuda.is_available():
         torch.cuda.empty_cache()
     wandb.finish()
     
         
-
-
-sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=100)
+sweep_id = "tfi8br1b"
+wandb.agent(sweep_id, run_exp, count=100, project="IterativeMethods")
     
         
