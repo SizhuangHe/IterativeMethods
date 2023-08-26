@@ -1,1 +1,1 @@
-This folder contains implementation of traditional GCNs (as in [PyGCN](https://github.com/tkipf/pygcn)) and also implementation of iterative GCN.<br>
+This folder contains implementation of traditional GCNs and also implementation of iterative GCN.<br>
