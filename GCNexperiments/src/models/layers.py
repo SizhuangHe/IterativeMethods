@@ -3,6 +3,8 @@ from torch_geometric.nn import MessagePassing
 import torch.nn.functional as F
 from ogb.graphproppred.mol_encoder import BondEncoder
 from torch_geometric.utils import degree
+import torch.nn as nn
+from torch_geometric.nn import MLP, Linear
 
 class GCNConv_mol(MessagePassing):
     '''
@@ -36,6 +38,48 @@ class GCNConv_mol(MessagePassing):
 
     def update(self, aggr_out):
         return aggr_out
+
+class VOCNodeEncoder(nn.Module):
+    def __init__(self, emb_dim):
+        super().__init__()
+
+        self.encoder = nn.Linear(14, emb_dim)
+        # torch.nn.init.xavier_uniform_(self.encoder.weight.data)
+
+    def forward(self, x):
+        x = self.encoder(x)
+        return x
+    
+class GNNInductiveNodeHead(nn.Module):
+    """
+    GNN prediction head for inductive node prediction tasks.
+
+    Args:
+        dim_in (int): Input dimension
+        dim_out (int): Output dimension. For binary prediction, dim_out=1.
+    """
+
+    def __init__(self, in_dim, hid_dim, out_dim, num_layers):
+        super(GNNInductiveNodeHead, self).__init__()
+        layers = []
+        if num_layers > 1:
+            layers.append(MLP(in_channels=in_dim,
+                                 hidden_channels=hid_dim,
+                                 out_channels=hid_dim,
+                                 num_layers=num_layers - 1,
+                                 bias=True))
+            layers.append(Linear(in_channels=hid_dim, out_channels=out_dim, bias=True))
+        else:
+            layers.append(Linear(in_channels=in_dim, out_channels=out_dim, bias=True))
+
+        self.layer_post_mp = nn.Sequential(*layers)
+                          
+            
+
+    def forward(self, x):
+        x = self.layer_post_mp(x)
+        return x
+
 
 if __name__ == "__main__":
     pass

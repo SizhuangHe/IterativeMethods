@@ -1,7 +1,7 @@
 import numpy as np
 import torch.nn as nn
 import torch.nn.functional as F
-from src.models.layers import GCNConv_mol
+from src.models.layers import GCNConv_mol, VOCNodeEncoder, GNNInductiveNodeHead
 from torch_geometric.nn import GCNConv, GATConv, global_mean_pool
 from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 # from torch_geometric.utils.dropout import dropout_edge
@@ -124,7 +124,7 @@ class GCN_arxiv(nn.Module):
         x = self.graph_convs[-1](x, adj_t)
         
         return x
-class GCN_inductive(nn.Module):
+class GCN_mol(nn.Module):
     '''
     This GCN model is for inductive tasks, more specifically, ogbg-molhiv and ogbg-molpcba dataset.
     The code is modified from
@@ -156,7 +156,7 @@ class GCN_inductive(nn.Module):
         if self.num_layers < 2:
             raise ValueError("Number of GNN layers must be greater than 1.")
         for layer in range(num_layers):
-            self.graph_convs.append(GCNConv_mol(hidden_dim, hidden_dim))
+            self.graph_convs.append(GCNConv_mol(hidden_dim))
             self.batch_norms.append(nn.BatchNorm1d(hidden_dim))   
         
     def forward(self, x, edge_index, edge_attr, batch):
@@ -173,6 +173,50 @@ class GCN_inductive(nn.Module):
                 h = F.dropout(h, self.dropout, training=self.training)
 
         h = self.pool(h, batch)
+        h = self.graph_pred_linear(h)
+
+        return h
+    
+class GCN_vocsp(nn.Module):
+    '''
+    This GCN model is for inductive tasks, more specifically, ogbg-molhiv and ogbg-molpcba dataset.
+    The code is modified from
+      https://github.com/snap-stanford/ogb/blob/master/examples/graphproppred/mol/gnn.py
+    '''
+    def __init__(self, 
+                 out_dim:int,
+                 hidden_dim: int,
+                 MLP_layers=3,
+                 num_layers=2,
+                 dropout=0.5):
+        super().__init__()
+        self.num_layers = num_layers
+        self.out_dim = out_dim
+        self.dropout = dropout
+        self.hidden_dim = hidden_dim
+        self.encoder = VOCNodeEncoder(hidden_dim)
+        
+        self.graph_convs = nn.ModuleList()
+        self.batch_norms = nn.ModuleList()
+
+        self.graph_pred_linear = GNNInductiveNodeHead(in_dim=hidden_dim, hid_dim=hidden_dim, out_dim=out_dim, num_layers=MLP_layers)
+
+        
+        if self.num_layers < 2:
+            raise ValueError("Number of GNN layers must be greater than 1.")
+        for layer in range(num_layers):
+            self.graph_convs.append(GCNConv(hidden_dim, hidden_dim))
+            self.batch_norms.append(nn.BatchNorm1d(hidden_dim))   
+        
+    def forward(self, x, edge_index, edge_attr, batch):
+        h = self.encoder(x)
+
+        for layer in range(self.num_layers):
+            h = self.graph_convs[layer](h, edge_index)
+            h = self.batch_norms[layer](h)
+            h = F.dropout(h, self.dropout, training=self.training)
+            h = F.relu(h)
+            
         h = self.graph_pred_linear(h)
 
         return h

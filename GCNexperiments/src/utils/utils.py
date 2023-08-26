@@ -6,10 +6,12 @@ import torch.nn.functional as F
 from torch_geometric.datasets import Planetoid, Amazon
 from torch_geometric.transforms import NormalizeFeatures
 from torch_geometric.utils import add_remaining_self_loops
-from src.models.iterativeModels import iterativeGCN
+from src.models.iterativeModels import iterativeGCN_mol, iterativeGCN_Planetoid
 from ogb.graphproppred import Evaluator
 from tqdm import tqdm
 from math import sqrt
+from sklearn.metrics import f1_score
+from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
 
 import wandb
 
@@ -196,7 +198,7 @@ def make_Amazon_data(config, seed=None):
     return data, num_features, num_classes
 
 def build_iterativeGCN(config, input_dim, output_dim, train_schedule):
-    model = iterativeGCN(input_dim=input_dim,
+    model = iterativeGCN_Planetoid(input_dim=input_dim,
                             output_dim=output_dim,
                             hidden_dim=config.hid_dim,
                             dropout=config.dropout,
@@ -259,3 +261,103 @@ def exp_arxiv(model, data, optimizer, scheduler, train_idx, valid_idx, test_idx,
     wandb.log({
         'test_accuracy': test_acc
     })
+
+def weighted_cross_entropy(pred, true):
+    """Weighted cross-entropy for unbalanced classes.
+    """
+    
+    # calculating label weights for weighted loss computation
+    V = true.size(0)
+    
+    n_classes = pred.shape[1] if pred.ndim > 1 else 2
+    label_count = torch.bincount(true)
+    label_count = label_count[label_count.nonzero(as_tuple=True)].squeeze()
+    cluster_sizes = torch.zeros(n_classes, device=pred.device).long()
+    cluster_sizes[torch.unique(true)] = label_count
+    weight = (V - cluster_sizes).float() / V
+    weight *= (cluster_sizes > 0).float()
+
+    # multiclass
+    if pred.ndim > 1:
+        pred = F.log_softmax(pred, dim=-1)
+        loss = F.nll_loss(pred, true, weight=weight)
+        
+        return loss
+    # binary
+    else:
+        loss = F.binary_cross_entropy_with_logits(pred, true.float(),
+                                                    weight=weight[true])
+        return loss
+
+
+def train_vocsp_epoch(model, loader, optimizer, scheduler, device):
+    model.train()
+    criterion = weighted_cross_entropy
+    epoch_loss = 0
+    for step, batched_data in enumerate(loader):  # Iterate in batches over the training dataset.
+        batched_data = batched_data.to(device)
+        pred = model(batched_data.x, batched_data.edge_index, batched_data.edge_attr,batched_data.batch) # size of pred is [number of nodes, number of features]
+        true = batched_data.y
+        loss = criterion(pred, true)
+        epoch_loss += loss.item()
+        optimizer.zero_grad()  
+        loss.backward() 
+        optimizer.step()
+        if isinstance(scheduler, OneCycleLR):
+            scheduler.step()
+        
+    return epoch_loss
+
+def eval_vocsp(model, loader, device):
+    model.eval()
+    y_true = []
+    y_pred = []
+    criterion = weighted_cross_entropy
+    val_loss = 0
+    for step, batched_data in enumerate(loader):  # Iterate in batches over the training dataset.
+        batched_data = batched_data.to(device)
+        pred = model(batched_data.x, batched_data.edge_index, batched_data.edge_attr,batched_data.batch) # size of pred is [number of nodes, number of features]
+        true = batched_data.y
+        loss = criterion(pred, true)
+        val_loss += loss.item()
+
+        pred_val = pred.max(dim=1)[1] # pred_val contains actually class predictions
+        y_pred.append(pred_val.detach())
+        y_true.append(true.detach())
+    
+    y_true = torch.cat(y_true, dim = 0).cpu().numpy()
+    y_pred = torch.cat(y_pred, dim = 0).cpu().numpy()
+    val_f1 = f1_score(y_true, y_pred, average="macro")
+        
+    return val_loss, val_f1
+
+def train_vocsp(model, optimizer, scheduler, train_loader, valid_loader, num_epochs, device):
+    wandb.watch(model, log="all", log_freq=10)
+    for epoch in range(num_epochs):
+        train_loss = train_vocsp_epoch(model, train_loader, optimizer, scheduler, device)
+        val_loss, val_f1 = eval_vocsp(model, valid_loader, device)
+        
+        wandb.log({
+            "Train loss": train_loss,
+            "Validate f1": val_f1,
+            "Validate loss": val_loss,
+            "epoch": epoch+1,
+            "lr": optimizer.param_groups[0]['lr']
+        })
+        if isinstance(scheduler, ReduceLROnPlateau):
+            scheduler.step(val_loss)
+        
+
+def exp_vocsp(model, optimizer, scheduler,train_loader, valid_loader, test_loader, num_epochs,device):
+    num_params = count_parameters(model)
+    wandb.log({ 
+            'num_param': num_params
+    }) 
+    train_vocsp(model, optimizer, scheduler, train_loader, valid_loader, num_epochs, device)
+    test_loss, test_f1=eval_vocsp(model, test_loader, device)
+    wandb.log({
+        "Test loss": test_loss,
+        "Test f1": test_f1
+    })
+    
+    

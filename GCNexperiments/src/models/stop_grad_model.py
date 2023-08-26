@@ -8,6 +8,7 @@ from ogb.graphproppred.mol_encoder import AtomEncoder, BondEncoder
 class iterativeGCN_inductive(nn.Module):
     '''
     iterativeGCN for ogbg-mol datasets
+    This is used to try only compute gradients on the last iteration
     '''
     def __init__(self,  
                  num_tasks: int,
