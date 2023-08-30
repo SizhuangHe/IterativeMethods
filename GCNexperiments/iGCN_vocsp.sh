@@ -21,7 +21,7 @@ export PYTHONPATH="/home/sh2748/vanDijkLab/IterativeMethods/GCNexperiments"
 
 # Execute each Python file on a separate CPU using srun
 
-srun -n 1 --exclusive python3 sweep_iGCN_PVOC-SP.py --hid_dim 300
+srun -n 1 --exclusive python3 sweep_iGCN_PVOC-SP.py --hid_dim 220
 
 
 

@@ -15,9 +15,14 @@ from torch_geometric.datasets import LRGBDataset
 from torch_geometric.loader import DataLoader
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+from argparse import ArgumentParser
 
 import wandb
 wandb.login()
+
+parser = ArgumentParser()
+parser.add_argument("--hid_dim", type=int, help="the hidden dimension of the model", default=220)
+args = parser.parse_args()
 
 train_dataset = LRGBDataset(root="/vast/palmer/scratch/dijk/sh2748/data/palmer_scratch/data/LRGB", name="PascalVOC-SP", split="train")
 val_dataset = LRGBDataset(root="/vast/palmer/scratch/dijk/sh2748/data/palmer_scratch/data/LRGB", name="PascalVOC-SP", split="val")
@@ -58,7 +63,7 @@ def run_exp(config=None):
         
 
 sweep_config = {
-    'method': 'random'
+    'method': 'grid'
 }
 
 metric = {
@@ -69,19 +74,19 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'value': 8
+        'value': 4
     },
     'learning_rate': {
-        'value': 0.0005
+        'values': [0.0001, 0.0005, 0.001, 0.0015, 0.002]
     },
     'smooth_fac': {
-        'values': [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9] #doesn't matter
+        'value': 0.5 #doesn't matter
     },
     'hid_dim': {
-        'value': 220
+        'value': args.hid_dim
     },
     'weight_decay': {
-        'value': 0.0
+        'values': [0, 1e-5]
     },
     'num_epochs': {
         'value': 200
@@ -99,6 +104,6 @@ parameters_dict = {
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=10)
+wandb.agent(sweep_id, run_exp)
     
         

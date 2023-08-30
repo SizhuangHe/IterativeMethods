@@ -115,6 +115,7 @@ def run_exp(config=None):
     wandb.log({
         "device": device_str
     })
+
     train_schedule = make_uniform_schedule(config.num_iter_layers, config.smooth_fac)
     wandb.log({
         "train_schedule": train_schedule
@@ -124,17 +125,18 @@ def run_exp(config=None):
                           hidden_dim=config.hid_dim,
                           train_schedule=train_schedule,
                           MLP_layers=3,
-                          dropout=config.dropout
+                          dropout=config.dropout,
+                          xavier_init=True
                           ).to(device)
     optimizer = AdamW(model.parameters(), lr=config.learning_rate, weight_decay=config.weight_decay)
-    scheduler = OneCycleLR(optimizer, max_lr=config.learning_rate, epochs=config.num_epochs, steps_per_epoch=len(train_loader))
+    scheduler = OneCycleLR(optimizer, max_lr=config.learning_rate, epochs=config.num_epochs, steps_per_epoch=len(train_loader), pct_start=config.pct_start)
     exp_vocsp(model, optimizer, scheduler, train_loader, val_loader, test_loader, config.num_epochs, device)
 
     wandb.finish()
     
 
 sweep_config = {
-    'method': 'random'
+    'method': 'grid'
 }
 
 metric = {
@@ -145,33 +147,36 @@ sweep_config['metric'] = metric
 
 parameters_dict = {
     'num_iter_layers': {
-        'values': [8,9,10,11,12,13,14,15,16,17,18]
+        'values': 8
     },
     'learning_rate': {
-        'values': [0.00003, 0.00005, 0.00007, 0.0001, 0.0002]
+        'values': [0.00001, 0.00005, 0.0001]
     },
     'smooth_fac': {
-        'values': [0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85] 
+        'values': [0.5, 0.7, 0.8] 
     },
     'hid_dim': {
         'value': args.hid_dim
     },
     'weight_decay': {
-        'values': [0, 1e-7, 1e-6, 1e-5]
+        'values': [0, 1e-5]
     },
     'num_epochs': {
         'value': 200
     },
     'dropout': {
-        'values': [0.4, 0.5, 0.6]
+        'value': 0.5
     },
     'dataset_name': {
         'value': 'VOC-SP'
+    },
+    'pct_start':{
+        'value': 0.2
     }
 }
 sweep_config['parameters'] = parameters_dict
 
 sweep_id = wandb.sweep(sweep_config, project="IterativeMethods")
-wandb.agent(sweep_id, run_exp, count=100)
+wandb.agent(sweep_id, run_exp)
     
         

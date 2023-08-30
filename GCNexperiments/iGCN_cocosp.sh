@@ -8,7 +8,7 @@
 #SBATCH --requeue
 #SBATCH --gpus=1
 #SBATCH --ntasks-per-node=1
-#SBATCH --mem-per-cpu=24gb
+#SBATCH --mem-per-cpu=16gb
 #SBATCH --time=2-00:00:00
 #SBATCH --output=/home/sh2748/Logs/log_gnn_expt_%J.log
 date;hostname;pwd

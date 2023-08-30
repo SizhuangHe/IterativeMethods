@@ -178,11 +178,6 @@ class GCN_mol(nn.Module):
         return h
     
 class GCN_vocsp(nn.Module):
-    '''
-    This GCN model is for inductive tasks, more specifically, ogbg-molhiv and ogbg-molpcba dataset.
-    The code is modified from
-      https://github.com/snap-stanford/ogb/blob/master/examples/graphproppred/mol/gnn.py
-    '''
     def __init__(self, 
                  out_dim:int,
                  hidden_dim: int,

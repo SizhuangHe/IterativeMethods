@@ -10,8 +10,9 @@ from src.models.iterativeModels import iterativeGCN_mol, iterativeGCN_Planetoid
 from ogb.graphproppred import Evaluator
 from tqdm import tqdm
 from math import sqrt
-from sklearn.metrics import f1_score
+from sklearn.metrics import f1_score, average_precision_score
 from torch.optim.lr_scheduler import ReduceLROnPlateau, OneCycleLR
+from src.utils.metrics import eval_ap
 
 import wandb
 
@@ -289,12 +290,11 @@ def weighted_cross_entropy(pred, true):
                                                     weight=weight[true])
         return loss
 
-
-def train_vocsp_epoch(model, loader, optimizer, scheduler, device):
+def train_vocsp_epoch(model, loader, optimizer, scheduler, device='cpu'):
     model.train()
     criterion = weighted_cross_entropy
     epoch_loss = 0
-    for step, batched_data in enumerate(loader):  # Iterate in batches over the training dataset.
+    for batched_data in loader:  # Iterate in batches over the training dataset.
         batched_data = batched_data.to(device)
         pred = model(batched_data.x, batched_data.edge_index, batched_data.edge_attr,batched_data.batch) # size of pred is [number of nodes, number of features]
         true = batched_data.y
@@ -308,13 +308,14 @@ def train_vocsp_epoch(model, loader, optimizer, scheduler, device):
         
     return epoch_loss
 
-def eval_vocsp(model, loader, device):
+def eval_vocsp(model, loader, device='cpu'):
     model.eval()
     y_true = []
-    y_pred = []
+    y_pred = [] 
+    
     criterion = weighted_cross_entropy
     val_loss = 0
-    for step, batched_data in enumerate(loader):  # Iterate in batches over the training dataset.
+    for batched_data in loader:  # Iterate in batches over the training dataset.
         batched_data = batched_data.to(device)
         pred = model(batched_data.x, batched_data.edge_index, batched_data.edge_attr,batched_data.batch) # size of pred is [number of nodes, number of features]
         true = batched_data.y
@@ -324,6 +325,7 @@ def eval_vocsp(model, loader, device):
         pred_val = pred.max(dim=1)[1] # pred_val contains actually class predictions
         y_pred.append(pred_val.detach())
         y_true.append(true.detach())
+
     
     y_true = torch.cat(y_true, dim = 0).cpu().numpy()
     y_pred = torch.cat(y_pred, dim = 0).cpu().numpy()
@@ -331,11 +333,11 @@ def eval_vocsp(model, loader, device):
         
     return val_loss, val_f1
 
-def train_vocsp(model, optimizer, scheduler, train_loader, valid_loader, num_epochs, device):
+def train_vocsp(model, optimizer, scheduler, train_loader, valid_loader, num_epochs, device='cpu'):
     wandb.watch(model, log="all", log_freq=10)
     for epoch in range(num_epochs):
         train_loss = train_vocsp_epoch(model, train_loader, optimizer, scheduler, device)
-        val_loss, val_f1 = eval_vocsp(model, valid_loader, device)
+        val_loss, val_f1= eval_vocsp(model, valid_loader, device)
         
         wandb.log({
             "Train loss": train_loss,
@@ -348,7 +350,7 @@ def train_vocsp(model, optimizer, scheduler, train_loader, valid_loader, num_epo
             scheduler.step(val_loss)
         
 
-def exp_vocsp(model, optimizer, scheduler,train_loader, valid_loader, test_loader, num_epochs,device):
+def exp_vocsp(model, optimizer, scheduler,train_loader, valid_loader, test_loader, num_epochs, device):
     num_params = count_parameters(model)
     wandb.log({ 
             'num_param': num_params
@@ -360,4 +362,76 @@ def exp_vocsp(model, optimizer, scheduler,train_loader, valid_loader, test_loade
         "Test f1": test_f1
     })
     
+def train_pepfunc_epoch(model, loader, optimizer, scheduler, device='cpu'):
+    model.train()
+    criterion = F.cross_entropy
+    epoch_loss = 0
+    for batched_data in loader:  # Iterate in batches over the training dataset.
+        batched_data = batched_data.to(device)
+        pred = model(batched_data.x, batched_data.edge_index, batched_data.edge_attr,batched_data.batch) # size of pred is [number of nodes, number of features]
+        true = batched_data.y
+        loss = criterion(pred, true)
+        epoch_loss += loss.item()
+        optimizer.zero_grad()  
+        loss.backward() 
+        optimizer.step()
+        if isinstance(scheduler, OneCycleLR):
+            scheduler.step()
+        
+    return epoch_loss
+
+def eval_pepfunc(model, loader, device='cpu'):
+    model.eval()
+    y_true = []
+    y_pred = [] 
     
+    criterion = weighted_cross_entropy
+    val_loss = 0
+    for step, batched_data in enumerate(loader):  # Iterate in batches over the training dataset.
+        batched_data = batched_data.to(device)
+        pred = model(batched_data.x, batched_data.edge_index, batched_data.edge_attr,batched_data.batch) 
+        true = batched_data.y
+        loss = criterion(pred, true)
+        val_loss += loss.item()
+
+    
+        y_pred.append(pred.detach())
+        y_true.append(true.detach())
+
+    
+    y_true = torch.cat(y_true, dim = 0).cpu().numpy()
+    y_pred = torch.cat(y_pred, dim = 0).cpu().numpy()
+    val_ap = eval_ap(y_true, y_pred)
+      
+    return val_loss, val_ap
+
+def train_pepfunc(model, optimizer, scheduler, train_loader, valid_loader, num_epochs,device='cpu'):
+    wandb.watch(model, log="all", log_freq=10)
+    for epoch in range(num_epochs):
+        train_loss = train_pepfunc_epoch(model, train_loader, optimizer, scheduler, device)
+        val_loss, val_ap = eval_pepfunc(model, valid_loader, device)
+        
+        wandb.log({
+            "Train loss": train_loss,
+            "Validate loss": val_loss,
+            "Validate AP": val_ap,
+            "epoch": epoch+1,
+            "lr": optimizer.param_groups[0]['lr']
+        })
+        if isinstance(scheduler, ReduceLROnPlateau):
+            scheduler.step(val_loss)
+        
+
+def exp_pepfunc(model, optimizer, scheduler,train_loader, valid_loader, test_loader, num_epochs, device):
+    num_params = count_parameters(model)
+    wandb.log({ 
+            'num_param': num_params
+    }) 
+    train_pepfunc(model, optimizer, scheduler, train_loader, valid_loader, num_epochs, device)
+    test_loss, test_ap=eval_pepfunc(model, test_loader, device)
+    wandb.log({
+        "Test loss": test_loss,
+        "Test AP": test_ap
+    })
+    
+       

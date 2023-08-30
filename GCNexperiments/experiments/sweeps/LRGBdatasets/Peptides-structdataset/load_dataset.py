@@ -21,6 +21,6 @@ import wandb
 wandb.login()
 
 
-train_dataset = LRGBDataset(root="/vast/palmer/scratch/dijk/sh2748/data/LRGB", name="PascalVOC-SP", split="train")
-val_dataset = LRGBDataset(root="/vast/palmer/scratch/dijk/sh2748/data/LRGB", name="PascalVOC-SP", split="val")
-test_dataset = LRGBDataset(root="/vast/palmer/scratch/dijk/sh2748/data/LRGB", name="PascalVOC-SP", split="test")
+train_dataset = LRGBDataset(root="/vast/palmer/scratch/dijk/sh2748/data/LRGB", name="Peptides-struct", split="train")
+val_dataset = LRGBDataset(root="/vast/palmer/scratch/dijk/sh2748/data/LRGB", name="Peptides-struct", split="val")
+test_dataset = LRGBDataset(root="/vast/palmer/scratch/dijk/sh2748/data/LRGB", name="Peptides-struct", split="test")

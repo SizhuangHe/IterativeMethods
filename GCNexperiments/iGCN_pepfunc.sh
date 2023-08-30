@@ -16,12 +16,12 @@ module load Python/3.8.6
 
 cd /vast/palmer/home.mccleary/sh2748/vanDijkLab/IterativeMethods
 source iterENV/bin/activate
-cd GCNexperiments/experiments/sweeps/LRGBdatasets/PascalVOC-SPdataset
+cd GCNexperiments/experiments/sweeps/LRGBdatasets/Peptides-funcdataset
 export PYTHONPATH="/home/sh2748/vanDijkLab/IterativeMethods/GCNexperiments"
 
 # Execute each Python file on a separate CPU using srun
 
-srun -n 1 --exclusive python3 sweep_iGCN_PVOC-SP_tryLR.py --hid_dim 220
+srun -n 1 --exclusive python3 sweep_iGCN_Peptides-func.py --hid_dim 590 --lr_sche "one-cycle" --dataset "Peptides-func"
 
 
 
